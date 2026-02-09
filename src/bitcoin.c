@@ -16,7 +16,9 @@
 #include "bitcoin.h"
 #include "stratifier.h"
 
-static char* understood_rules[] = {"segwit"};
+/* BCH does not use consensus rules like Segwit (BTC).
+ * If bitcoind requires any rule we don't understand, mining is rejected for safety. */
+static char* understood_rules[] = {};
 
 static bool check_required_rule(const char* rule)
 {
@@ -80,12 +82,11 @@ bool validate_address(connsock_t *cs, const char *address, bool *script, bool *s
 		goto out;
 	}
 	*script = json_is_true(tmp_val);
+	/* BCH doesn't support segwit; check if node returned iswitness field.
+	 * For BCH nodes, this field will be absent, so always set to false. */
 	tmp_val = json_object_get(res_val, "iswitness");
-	if (unlikely(!tmp_val))
-		goto out;
-	*segwit = json_is_true(tmp_val);
-	LOGDEBUG("Bitcoin address %s IS valid%s%s", address, *script ? " script" : "",
-		 *segwit ? " segwit" : "");
+	*segwit = (tmp_val && json_is_true(tmp_val)) ? true : false;
+	LOGDEBUG("Bitcoin address %s IS valid%s", address, *script ? " script" : "");
 out:
 	if (val)
 		json_decref(val);
@@ -113,7 +114,7 @@ out:
 	return val;
 }
 
-static const char *gbt_req = "{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": [\"coinbasetxn\", \"workid\", \"coinbase/append\"], \"rules\" : [\"segwit\"]}]}\n";
+static const char *gbt_req = "{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": [\"coinbasetxn\", \"workid\", \"coinbase/append\"]}]}\n";
 
 /* Request getblocktemplate from bitcoind already connected with a connsock_t
  * and then summarise the information to the most efficient set of data

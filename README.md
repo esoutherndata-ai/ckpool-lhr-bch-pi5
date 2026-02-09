@@ -1,9 +1,9 @@
-# CKPOOL-LHR
+# CKPOOL-LHR-BCH
 
-A fork of CKPool featuring sub-"1" difficulty support for low hash rate miners
+A fork of CKPool-LHR adapted for Bitcoin Cash (BCH) blockchain support, featuring sub-"1" difficulty support for low hash rate miners
 (ESP32 devices and others), along with additional enhancements for solo mining.
 
-Ultra low overhead, scalable, multi-process, multi-threaded Bitcoin mining
+Ultra low overhead, scalable, multi-process, multi-threaded Bitcoin Cash mining
 pool software in C for Linux.
 
 ## Key Features
@@ -56,7 +56,7 @@ GNU Public license V3. See included COPYING for details.
 
 # Building
 
-Building ckpool-lhr requires basic build tools and yasm on any Linux installation. ZMQ notification support (recommended) requires the zmq devel library installed.
+Building ckpool-lhr-bch requires basic build tools and yasm on any Linux installation. ZMQ notification support (recommended) requires the zmq devel library installed.
 
 ### Building with ZMQ (recommended)
 
@@ -79,8 +79,8 @@ make
 Requires additional autotools:
 
 ```bash
-git clone https://github.com/Z3r0XG/ckpool-lhr.git
-cd ckpool-lhr
+git clone https://github.com/Z3r0XG/ckpool-lhr-bch.git
+cd ckpool-lhr-bch
 sudo apt-get install build-essential yasm autoconf automake libtool libzmq3-dev pkgconf
 ./autogen.sh
 ./configure
@@ -121,13 +121,13 @@ username, and any blocks found are paid directly to that address.
 
 ## How Solo Mode Works
 
-In solo mode, ckpool-lhr connects to a Bitcoin daemon (bitcoind) to receive
-block templates. Miners connect and provide their Bitcoin address as their
+In solo mode, ckpool-lhr-bch connects to a Bitcoin Cash daemon (bitcoind) to receive
+block templates. Miners connect and provide their Bitcoin Cash address as their
 username. When a block is found, the reward goes directly to the miner's
 specified address.
 
 **Workflow**: Bitcoind provides block template → Pool generates work → Miner
-connects with Bitcoin address as username → Miner submits shares → Block found →
+connects with Bitcoin Cash address as username → Miner submits shares → Block found →
 Reward sent directly to miner's address.
 
 ---
@@ -176,20 +176,6 @@ Reward sent directly to miner's address.
 
 ## Quick Start
 
-### Option 1: Automated Installation
-
-> [!TIP]
-> **Recommended for most users.** This script handles all dependencies and configuration.
-
-Run the installation script as root/sudo:
-```bash
-sudo ./scripts/install-ckpool-solo.sh
-```
-
-This automatically installs Bitcoin Core and ckpool-lhr, sets up systemd
-services, and configures everything for solo mining.
-
-### Option 2: Manual Setup
 
 #### 1. Configure Bitcoin Daemon
 
@@ -234,7 +220,7 @@ Edit `ckpool.conf` with required settings:
 }
 ```
 
-#### 3. Start ckpool-lhr in Solo Mode
+#### 3. Start ckpool-lhr-bch in Solo Mode
 
 ```bash
 src/ckpool -B
@@ -420,8 +406,15 @@ All configuration options are listed below.
 
 ---
 
-## Other Modes
+## Supported Modes
 
-While ckpool-lhr is optimized and documented for solo mining, it inherits all capabilities from upstream CKPool.
+**This BCH fork supports SOLO MODE only (`-B` flag).**
 
-For documentation on pool, proxy, and passthrough modes, please refer to the [original CKPool documentation](https://bitbucket.org/ckolivas/ckpool).
+While the codebase inherits pool/proxy/passthrough modes from upstream CKPool:
+- ❌ **Not tested** with Bitcoin Cash
+- ❌ **Not supported** or maintained  
+- ❌ **Use at your own risk**
+
+The recommended and tested configuration is solo mining with the `-B` flag.
+
+For full-featured pool operation on Bitcoin (BTC), use the original [ckpool-lhr](https://github.com/Z3r0XG/ckpool-lhr).

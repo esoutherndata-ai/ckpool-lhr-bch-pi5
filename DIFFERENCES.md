@@ -1,90 +1,104 @@
-# Differences Between Original CKPOOL and CKPOOL-LHR Fork
+# Differences Between CKPOOL-LHR and CKPOOL-LHR-BCH Fork
 
-This document summarizes the key differences between the original CKPOOL repository
-and the CKPOOL-LHR fork.
+This document summarizes the key differences between the CKPOOL-LHR repository
+and the CKPOOL-LHR-BCH fork.
 
 ## Overview
 
-The CKPOOL-LHR fork includes modifications to support sub-"1" difficulty values for low hash rate miners,
-along with other enhancements and changes.
+The CKPOOL-LHR-BCH fork is a specialized adaptation of CKPOOL-LHR for Bitcoin Cash (BCH) blockchain compatibility. It inherits all LHR features (fractional difficulty, user agent controls, etc.) while adding BCH-specific modifications.
 
-## Core Changes
+## BCH-Specific Changes
 
-### 1. Fractional Difficulty Support (LHR Feature)
+### 1. Segwit Support Removal
 
-**Purpose**: Enable fractional difficulty values (including sub-1.0) for low hash rate miners (ESP32
-devices and other embedded systems).
+**Purpose**: Bitcoin Cash does not support Segwit, so remove all Segwit-related code and RPC parameters.
 
-**Behavior**:
-- All difficulty settings (`mindiff`, `startdiff`, `highdiff`, `maxdiff`) changed from integer to double precision floating point
-- Configuration options accept fractional values below 1 (e.g., 0.0005, 0.001)
-- Values >= 1 are automatically rounded to the nearest whole number (e.g., 1.3 → 1, 42.5 → 43)
-- Vardiff algorithm performs smooth adjustments using floating-point calculations (e.g., optimal = DSPS × 3.33)
-- Configuration validation:
-  - Negative values are rejected (pool exits with error)
-  - Zero values apply sensible defaults (mindiff=1, startdiff=42, highdiff=1000000)
-  - Values below 0.001 trigger performance warnings (but are accepted)
-- Automatic vardiff adjustment can now reduce difficulty below 1 based on hashrate
+**Changes**:
+- `understood_rules[]` in `bitcoin.c` (line 20) changed from `{"segwit"}` to empty array `{}`
+- `getblocktemplate` RPC request (line 117) removed `"rules": ["segwit"]` parameter
+- `validate_address()` function (lines 85-90) updated to handle missing `iswitness` field gracefully
+- Address validation no longer requires `iswitness` field from validateaddress RPC
+- Witness commitment detection verified - BCH nodes don't return `default_witness_commitment`
 
-### 2. Whole-Number Difficulty Emission
+**Safety**: Empty `understood_rules[]` array means pool will reject mining if BCH node requires any unknown consensus rules (prefixed with '!'). Since BCH returns NULL for rules field, no rules are enforced and mining proceeds safely.
 
-**Purpose**: Improve ASIC compatibility by emitting whole-number diffs as integers while retaining fractional math internally.
+**Technical Details**:
+- Coinbase transactions will not include witness commitment output for BCH blocks
+- `wb->insert_witness` remains false for all BCH block templates (stratifier.c:1358)
+- Transaction output counts correctly exclude witness data (stratifier.c:451-453)
+- `address_to_txn()` function always skips `segaddress_to_txn()` path for BCH addresses
 
-**Behavior**:
-- Diff values >= 1 are emitted in JSON as integers (not floats)
-- Internal calculations still use floating point with DIFF_EPSILON standardization (1e-6)
-- Rounding uses round() for clarity and consistency
+### 2. Blockchain References
 
-### 3. User Agent Whitelisting
+**Purpose**: Update all documentation and configuration to reference Bitcoin Cash instead of Bitcoin.
 
-**Purpose**: Optionally restrict which mining software can connect to the pool.
+**Changes**:
+- README.md updated to "Bitcoin Cash mining pool software"
+- Installation scripts reference "Bitcoin Cash Core"
+- Configuration examples use BCH-appropriate addresses
+- Project name changed to CKPOOL-LHR-BCH
 
-**Behavior**:
-- **Whitelist not configured** (missing or empty array): All user agents allowed, including empty strings
-- **Whitelist configured**: User agent must match a whitelist entry using prefix matching, otherwise connection is rejected. Empty user agents are rejected (they don't match any pattern)
+### 3. Node Compatibility
 
-### 4. User Agent Aggregation & Exposure
+**Purpose**: Ensure compatibility with Bitcoin Cash nodes (Bitcoin ABC, etc.).
 
-**Purpose**: Expose normalized user-agent usage in operator-facing endpoints.
+**Changes**:
+- RPC calls remain compatible (getblocktemplate, validateaddress, etc.)
+- No changes to core mining protocol logic
+- Addresses use same format as Bitcoin (BCH uses legacy address format)
 
-**Behavior**:
-- Pool aggregates normalized UA strings and publishes counts in pool/pool.status (capped by max_pool_useragents; 0 disables publishing)
-- Individual user/worker pages show the specific useragent string for each worker
+## Inherited LHR Features
 
-### 5. Zombie/Ghost Cleanup Improvements
+CKPOOL-LHR-BCH inherits all features from CKPOOL-LHR:
 
-**Purpose**: Faster eviction of orphaned/ghost clients and safer refcount handling.
+### 1. Fractional Difficulty Support
 
-**Behavior**:
-- Tightened refcount invariant checks and lazy invalidation paths
-- Improved connector/stratifier cleanup to avoid stale clients and FD reuse hazards
-- Enhanced LOGDEBUG instrumentation to investigate zombie scenarios (production-safe)
-- Automatic behavior (no new config); distinct from dropidle, which remains user-tunable
-
-### 6. Bitcoind Cookie Authentication Support
-
-**Purpose**: Support cookie-based authentication for bitcoind connections.
+**Purpose**: Enable fractional difficulty values (including sub-1.0) for low hash rate miners.
 
 **Behavior**:
-- Bitcoind connections can use cookie-based authentication as an alternative to username/password
-- Add `"cookie" : "/path/to/.cookie"` to the btcd entry in ckpool.conf
-- Cookie file location: `~/.bitcoin/.cookie` (Linux default) or `<datadir>/.cookie` if custom datadir is set
+- All difficulty settings accept floating point values
+- Values >= 1 rounded to nearest integer for emission
+- Vardiff algorithm uses floating-point calculations
+- Configuration validation with sensible defaults
 
-### 7. Pool Status Enhancements
+### 2. User Agent Controls
 
-**Purpose**: Expose additional operational metrics and identify blocks mined by this fork.
-
-**Behavior**:
-- **Network difficulty in pool.status**: Current Bitcoin network difficulty exposed via `netdiff` field for monitoring blockchain state
-- **Worker connection timestamps**: Worker connection time persisted as `started` field (Unix timestamp) in `logs/users/*.json` for session tracking; maintains backward compatibility with legacy `connected` field
-
-### 8. Difficulty Configuration via Password Field
-
-**Purpose**: Allow miners to override suggested difficulty via the password field for clients that do not support or expose `mining.suggest_difficulty`.
+**Purpose**: Optional whitelisting and aggregation of mining software user agents.
 
 **Behavior**:
-- Append `diff=X` to the password field, where `X` is numeric (e.g., password: `user_password, diff=200` or simply `diff=0.001`).
-- Difficulty is applied after successful authorization and clamped to pool `mindiff`.
+- Configurable whitelist using prefix matching
+- User agent statistics exposed in pool status
+- Normalization of common mining software identifiers
+
+### 3. Enhanced Monitoring
+
+**Purpose**: Improved operator visibility into pool operations.
+
+**Behavior**:
+- User agent usage statistics
+- Enhanced logging and status endpoints
+- Better error reporting for debugging
+
+## Compatibility
+
+- **Backward Compatible**: All CKPOOL-LHR configurations work unchanged
+- **BCH Specific**: Optimized for Bitcoin Cash network parameters
+- **Mining Software**: Compatible with all Stratum mining clients
+- **Hardware**: Supports all mining hardware (ASIC, GPU, CPU, embedded)
+
+## Migration from CKPOOL-LHR
+
+1. Update `btcsig` in configuration to `"[:: BCH POOL ::]"`
+2. Ensure Bitcoin Cash node is running (Bitcoin ABC recommended)
+3. Update RPC connection to BCH node
+4. Rebuild with `./configure && make`
+5. Test with BCH testnet first if available
+
+## Repository
+
+- **Original**: https://github.com/Z3r0XG/ckpool-lhr
+- **BCH Fork**: https://github.com/Z3r0XG/ckpool-lhr-bch
+- **Upstream**: https://bitbucket.org/ckolivas/ckpool
 
 
 
