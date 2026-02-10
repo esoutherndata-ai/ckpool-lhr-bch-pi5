@@ -1,6 +1,6 @@
-# CKPOOL-LHR-BCH
+# ckpool-lhr-bch
 
-A fork of CKPool-LHR adapted for Bitcoin Cash (BCH) blockchain support, featuring sub-"1" difficulty support for low hash rate miners
+A fork of ckpool-lhr adapted for Bitcoin Cash (BCH) blockchain support, featuring sub-"1" difficulty support for low hash rate miners
 (ESP32 devices and others), along with additional enhancements for solo mining.
 
 Ultra low overhead, scalable, multi-process, multi-threaded Bitcoin Cash mining
@@ -19,8 +19,8 @@ pool software in C for Linux.
 
 ## Acknowledgment
 
-This software is a fork of CKPOOL-LHR, which itself is a fork of the original CKPool by Con Kolivas. 
-We acknowledge Con Kolivas's foundational work and the CKPOOL-LHR project for making this Bitcoin Cash adaptation possible.
+This software is a fork of ckpool-lhr, which itself is a fork of the original CKPool by Con Kolivas. 
+We acknowledge Con Kolivas's foundational work and the ckpool-lhr project for making this Bitcoin Cash adaptation possible.
 
 **Parent project:** https://github.com/Z3r0XG/ckpool-lhr  
 **Original project:** https://bitbucket.org/ckolivas/ckpool

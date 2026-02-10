@@ -1,6 +1,6 @@
-# CKPOOL-LHR Test Suite
+# ckpool-lhr Test Suite
 
-This directory contains unit tests for CKPOOL-LHR.
+This directory contains unit tests for ckpool-lhr.
 
 ## Test Files
 
