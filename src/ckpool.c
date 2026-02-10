@@ -1755,7 +1755,7 @@ int main(int argc, char **argv)
 		else if (ckp.proxy)
 			ckp.name = "ckproxy";
 		else
-			ckp.name = "ckpool";
+			ckp.name = "ckpool-lhr-bch";
 	}
 	snprintf(buf, 15, "%s", ckp.name);
 	prctl(PR_SET_NAME, buf, 0, 0, 0);

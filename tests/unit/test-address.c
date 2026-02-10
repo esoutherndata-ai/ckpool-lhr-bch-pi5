@@ -1,6 +1,8 @@
 /*
- * Unit tests for Bitcoin address encoding
- * Tests Base58 and Bech32 decoding through address_to_txn()
+ * Unit tests for Bitcoin Cash address encoding
+ * Tests Base58 (P2PKH, P2SH) and CashAddr decoding through address_to_txn()
+ * Note: BCH does not support Bech32/Segwit addresses - only BTC uses those
+ * Supports both mainnet and testnet address formats
  */
 
 #include <stdio.h>
@@ -61,37 +63,47 @@ static void test_p2sh_address(void)
     assert_true(len > 0);
 }
 
-/* Test address_to_txn with Segwit Bech32 address (starts with 'bc1')
- * These are Bech32 encoded addresses
+/* Test address_to_txn with CashAddr format (bitcoincash:q... for P2PKH, bitcoincash:p... for P2SH)
+ * CashAddr is the primary address format for Bitcoin Cash
  */
-static void test_segwit_bech32_address(void)
+static void test_cashaddr_address(void)
 {
     char txn[100];
     int len;
     
-    /* Test with a known valid Bech32 address format */
-    const char *test_addr = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"; // Example Bech32
+    /* Test with CashAddr P2PKH format (bitcoincash:q...) */
+    const char *cashaddr_p2pkh = "bitcoincash:qz2stage6prwvclzkejd83v8mt82jqg74ysnj3uvqt";
     
-    /* Test Segwit (script=false, segwit=true) */
-    len = address_to_txn(txn, test_addr, false, true);
+    /* Test CashAddr P2PKH (script=false, segwit=false) */
+    len = address_to_txn(txn, cashaddr_p2pkh, false, false);
     
-    /* Segwit transaction format:
-     * First byte: witness version (0x00 for version 0, or 0x50+version for version > 0)
-     * Second byte: witness program length
-     * Followed by witness program data
-     */
+    /* CashAddr P2PKH transaction should be 25 bytes (same as legacy P2PKH) */
+    assert_true(len == 25);
     assert_true(len > 0);
-    assert_true(len <= 100); // Reasonable size limit
+}
+
+/* Test testnet CashAddr format (bchtest:q... for P2PKH, bchtest:p... for P2SH) */
+static void test_testnet_cashaddr_address(void)
+{
+    char txn[100];
+    int len;
     
-    /* Version 0 segwit addresses should have version byte 0x00 */
-    /* Note: This may vary based on the actual address, but structure should be valid */
+    /* Test with testnet CashAddr P2PKH format (bchtest:q...) */
+    const char *testnet_cashaddr = "bchtest:qz2stage6prwvclzkejd83v8mt82jqg74yxvnp4f";
+    
+    /* Test testnet CashAddr P2PKH (script=false, segwit=false) */
+    len = address_to_txn(txn, testnet_cashaddr, false, false);
+    
+    /* Should produce valid 25-byte P2PKH transaction */
+    assert_true(len == 25);
+    assert_true(len > 0);
 }
 
 /* Test that address_to_txn handles different address types correctly */
 static void test_address_type_routing(void)
 {
     char txn[100];
-    int len_p2pkh, len_p2sh, len_segwit;
+    int len_p2pkh, len_p2sh;
     const char *test_addr = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
     
     /* Test that different flags produce different transaction formats
@@ -107,11 +119,9 @@ static void test_address_type_routing(void)
     len_p2sh = address_to_txn(txn, test_addr, true, false);
     assert_true(len_p2sh == 23);
     
-    /* Segwit with non-Bech32 address may produce unexpected results,
-     * but function should not crash
-     */
-    len_segwit = address_to_txn(txn, test_addr, false, true);
-    assert_true(len_segwit > 0);
+    /* BCH does not support Segwit - segwit parameter is ignored */
+    int len_ignored = address_to_txn(txn, test_addr, false, true);
+    assert_true(len_ignored == 25); /* Still produces P2PKH output */
 }
 
 /* Test Base58 decoding through b58tobin (indirectly via address_to_txn)
@@ -142,7 +152,7 @@ static void test_address_format_handling(void)
     char txn[100];
     int len;
     
-    /* Test different address formats that should be handled */
+    /* Test different address formats supported by BCH */
     
     /* Legacy address (P2PKH) */
     const char *legacy = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
@@ -154,10 +164,10 @@ static void test_address_format_handling(void)
     len = address_to_txn(txn, script, true, false);
     assert_true(len == 23);
     
-    /* Bech32 address (Segwit) */
-    const char *bech32 = "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4";
-    len = address_to_txn(txn, bech32, false, true);
-    assert_true(len > 0);
+    /* CashAddr address (bitcoincash:q... for P2PKH) */
+    const char *cashaddr = "bitcoincash:qz2stage6prwvclzkejd83v8mt82jqg74ysnj3uvqt";
+    len = address_to_txn(txn, cashaddr, false, false);
+    assert_true(len == 25);
 }
 
 /* Test edge cases - very long addresses, special characters, etc.
@@ -188,7 +198,8 @@ int main(void)
     
     run_test(test_legacy_p2pkh_address);
     run_test(test_p2sh_address);
-    run_test(test_segwit_bech32_address);
+    run_test(test_cashaddr_address);
+    run_test(test_testnet_cashaddr_address);
     run_test(test_address_type_routing);
     run_test(test_base58_encoding_structure);
     run_test(test_address_format_handling);

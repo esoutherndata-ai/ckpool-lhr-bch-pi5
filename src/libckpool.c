@@ -1754,57 +1754,87 @@ char *http_base64(const char *src)
 	return (str);
 }
 
-static const int8_t charset_rev[128] = {
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	15, -1, 10, 17, 21, 20, 26, 30,  7,  5, -1, -1, -1, -1, -1, -1,
-	-1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
-	1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1,
-	-1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
-	1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
-};
 
-/* It's assumed that there is no chance of sending invalid chars to these
- * functions as they should have been checked beforehand. */
-static void bech32_decode(uint8_t *data, int *data_len, const char *input)
+
+/* Decode CashAddr format for both mainnet and testnet
+ * Mainnet: bitcoincash:q... (P2PKH), bitcoincash:p... (P2SH)
+ * Testnet: bchtest:q... (P2PKH), bchtest:p... (P2SH)
+ * Regtest: bchreg:q... (P2PKH), bchreg:p... (P2SH)
+ * Returns hash160 (20 bytes) on success, NULL on failure */
+static bool cashaddr_to_hash(const char *addr, uchar *hash160)
 {
-	int input_len = strlen(input), hrp_len, i;
+	const char *base32_chars = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+	uchar payload[25]; /* version + hash160 + checksum */
+	int payload_len = 0;
+	const char *ptr;
+	int prefix_len = 0;
 
-	*data_len = 0;
-	while (*data_len < input_len && input[(input_len - 1) - *data_len] != '1')
-		++(*data_len);
-	hrp_len = input_len - (1 + *data_len);
-	*(data_len) -= 6;
-	for (i = hrp_len + 1; i < input_len; i++) {
-		int v = (input[i] & 0x80) ? -1 : charset_rev[(int)input[i]];
-
-		if (i + 6 < input_len)
-			data[i - (1 + hrp_len)] = v;
+	/* Check for CashAddr prefix (bitcoincash:, bchtest:, or bchreg:) */
+	if (strncmp(addr, "bitcoincash:", 12) == 0) {
+		prefix_len = 12;
+	} else if (strncmp(addr, "bchtest:", 8) == 0) {
+		prefix_len = 8;
+	} else if (strncmp(addr, "bchreg:", 7) == 0) {
+		prefix_len = 7;
+	} else {
+		return false;
 	}
-}
 
-static void convert_bits(char *out, int *outlen, const uint8_t *in,
-			 int inlen)
-{
-	const int outbits = 8, inbits = 5;
-	uint32_t val = 0, maxv = (((uint32_t)1) << outbits) - 1;
+	ptr = addr + prefix_len;
+	if (*ptr != 'q' && *ptr != 'p')
+		return false;
+
+	ptr++; /* Skip the q/p prefix byte indicator */
+
+	/* Base32 decode the remainder (5 bits per char, 8 bits per byte) */
+	uint32_t acc = 0;
 	int bits = 0;
 
-	while (inlen--) {
-		val = (val << inbits) | *(in++);
-		bits += inbits;
-		while (bits >= outbits) {
-			bits -= outbits;
-			out[(*outlen)++] = (val >> bits) & maxv;
+	while (*ptr && payload_len < 25) {
+		const char *pos = strchr(base32_chars, *ptr);
+		if (!pos)
+			return false; /* Invalid character */
+
+		acc = (acc << 5) | (pos - base32_chars);
+		bits += 5;
+
+		if (bits >= 8) {
+			bits -= 8;
+			payload[payload_len++] = (acc >> bits) & 0xff;
 		}
+		ptr++;
 	}
+
+	/* Flush remaining bits */
+	if (bits >= 5 || ((acc << (8 - bits)) & 0xff))
+		return false; /* Invalid padding */
+
+	if (payload_len != 25)
+		return false; /* Invalid length */
+
+	/* CashAddr payload: version byte + 20 bytes hash160 + 4 bytes checksum
+	 * We only care about the hash160 in the middle */
+	memcpy(hash160, &payload[1], 20);
+	return true;
 }
 
 static int address_to_pubkeytxn(char *pkh, const char *addr)
 {
+	uchar hash160[20];
 	char b58bin[25] = {};
 
+	/* Try CashAddr format first (bitcoincash:q..., bchtest:q..., bchreg:q...) */
+	if (cashaddr_to_hash(addr, hash160)) {
+		pkh[0] = 0x76;
+		pkh[1] = 0xa9;
+		pkh[2] = 0x14;
+		memcpy(&pkh[3], hash160, 20);
+		pkh[23] = 0x88;
+		pkh[24] = 0xac;
+		return 25;
+	}
+
+	/* Fall back to legacy Base58 format (1... for mainnet, m... for testnet) */
 	b58tobin(b58bin, addr);
 	pkh[0] = 0x76;
 	pkh[1] = 0xa9;
@@ -1817,8 +1847,19 @@ static int address_to_pubkeytxn(char *pkh, const char *addr)
 
 static int address_to_scripttxn(char *psh, const char *addr)
 {
+	uchar hash160[20];
 	char b58bin[25] = {};
 
+	/* Try CashAddr format first (bitcoincash:p..., bchtest:p..., bchreg:p...) */
+	if (cashaddr_to_hash(addr, hash160)) {
+		psh[0] = 0xa9;
+		psh[1] = 0x14;
+		memcpy(&psh[2], hash160, 20);
+		psh[22] = 0x87;
+		return 23;
+	}
+
+	/* Fall back to legacy Base58 format (3... for mainnet, 2... for testnet) */
 	b58tobin(b58bin, addr);
 	psh[0] = 0xa9;
 	psh[1] = 0x14;
@@ -1827,27 +1868,12 @@ static int address_to_scripttxn(char *psh, const char *addr)
 	return 23;
 }
 
-static int segaddress_to_txn(char *p2h, const char *addr)
-{
-	int data_len, witdata_len = 0;
-	char *witdata = &p2h[2];
-	uint8_t data[84];
 
-	bech32_decode(data, &data_len, addr);
-	p2h[0] = data[0];
-	/* Witness version is > 0 */
-	if (p2h[0])
-		p2h[0] += 0x50;
-	convert_bits(witdata, &witdata_len, data + 1, data_len - 1);
-	p2h[1] = witdata_len;
-	return witdata_len + 2;
-}
 
-/* Convert an address to a transaction and return the length of the transaction */
-int address_to_txn(char *p2h, const char *addr, const bool script, const bool segwit)
-{
-	if (segwit)
-		return segaddress_to_txn(p2h, addr);
+/* Convert an address to a transaction and return the length of the transaction
+	 * Note: BCH does not support segwit, so the segwit parameter is ignored. */
+	int address_to_txn(char *p2h, const char *addr, const bool script, const bool segwit __attribute__((unused)))
+	{
 	if (script)
 		return address_to_scripttxn(p2h, addr);
 	return address_to_pubkeytxn(p2h, addr);

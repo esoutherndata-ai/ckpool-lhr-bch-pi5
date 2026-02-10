@@ -19,10 +19,10 @@ pool software in C for Linux.
 
 ## Acknowledgment
 
-This software is a fork of CKPool by Con Kolivas. The original project is
-provided free of charge under the GPLv3 license. We honor and acknowledge
-Con Kolivas's foundational work that made this fork possible.
+This software is a fork of CKPOOL-LHR, which itself is a fork of the original CKPool by Con Kolivas. 
+We acknowledge Con Kolivas's foundational work and the CKPOOL-LHR project for making this Bitcoin Cash adaptation possible.
 
+**Parent project:** https://github.com/Z3r0XG/ckpool-lhr  
 **Original project:** https://bitbucket.org/ckolivas/ckpool
 
 ## Design
@@ -164,15 +164,13 @@ Reward sent directly to miner's address.
 - Set log level (0=emergency to 7=debug, default: 5=notice)
 
 **`-n NAME | --name NAME`**
-- Set process name (default: ckpool, cknode, etc.)
+- Set process name (default: ckpool-lhr-bch)
 
 **`-q | --quiet`**
 - Disable warnings and non-critical messages
 
 **`-s SOCKDIR | --sockdir SOCKDIR`**
 - Directory for unix domain sockets
-
----
 
 ## Quick Start
 
@@ -405,16 +403,3 @@ All configuration options are listed below.
 > This is normal behavior optimized for mainnet where block solving is rare.
 
 ---
-
-## Supported Modes
-
-**This BCH fork supports SOLO MODE only (`-B` flag).**
-
-While the codebase inherits pool/proxy/passthrough modes from upstream CKPool:
-- ❌ **Not tested** with Bitcoin Cash
-- ❌ **Not supported** or maintained  
-- ❌ **Use at your own risk**
-
-The recommended and tested configuration is solo mining with the `-B` flag.
-
-For full-featured pool operation on Bitcoin (BTC), use the original [ckpool-lhr](https://github.com/Z3r0XG/ckpool-lhr).

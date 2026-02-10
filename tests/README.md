@@ -33,8 +33,9 @@ This directory contains unit tests for CKPOOL-LHR.
 27. **test-ua-aggregation.c** - Useragent aggregation (fork feature)
 28. **test-vardiff-comprehensive.c** - Comprehensive vardiff testing
 29. **test-zombie-cleanup.c** - Zombie/ghost cleanup and refcount invariants (fork feature)
-30. **test-password-diff.c** - Password field difficulty suggestion parsing
-
+30. **test-password-diff.c** - Password field difficulty suggestion parsing30. **test-password-diff-job-id.c** - Password field and job ID handling
+31. **test-persistent-ua-tracking.c** - Persistent user agent tracking
+32. **test-worker-ua-recalc.c** - Worker user agent recalculation
 ## Building and Running Tests
 
 ### Prerequisites
@@ -87,6 +88,9 @@ make check
 ./tests/unit/test-ua-aggregation
 ./tests/unit/test-vardiff-comprehensive
 ./tests/unit/test-password-diff
+./tests/unit/test-password-diff-job-id
+./tests/unit/test-persistent-ua-tracking
+./tests/unit/test-worker-ua-recalc
 ```
 
 ## Test Framework
@@ -140,3 +144,7 @@ The test suite covers:
 > **Test failures?**
 > - Check `tests/test-suite.log` for detailed error messages
 > - Run individual test binaries for more verbose output
+
+---
+
+
