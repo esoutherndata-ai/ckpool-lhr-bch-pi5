@@ -1600,7 +1600,7 @@ static struct option long_options[] = {
 	{"quiet",	no_argument,		0,	'q'},
 	// {"redirector",	no_argument,		0,	'R'},
 	{"sockdir",	required_argument,	0,	's'},
-	{"trusted",	no_argument,		0,	't'},
+	// {"trusted",	no_argument,		0,	't'},
 	// {"userproxy",	no_argument,		0,	'u'},
 	{0, 0, 0, 0}
 };
@@ -1732,11 +1732,11 @@ int main(int argc, char **argv)
 			case 's':
 				ckp.socket_dir = strdup(optarg);
 				break;
-			case 't':
-				if (ckp.proxy)
-					quit(1, "Cannot set a proxy type and trusted remote mode");
-				ckp.remote = true;
-				break;
+			// case 't':
+			// 	if (ckp.proxy)
+			// 		quit(1, "Cannot set a proxy type and trusted remote mode");
+			// 	ckp.remote = true;
+			// 	break;
 			// case 'u':
 			// 	if (ckp.proxy || ckp.redirector || ckp.passthrough || ckp.node)
 			// 		quit(1, "Cannot set both userproxy and another proxy type or redirector");
