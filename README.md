@@ -174,8 +174,9 @@ Reward sent directly to miner's address.
 
 ## Quick Start
 
+> This software requires a Bitcoin Cash (BCH) node. Tested with [Bitcoin Cash Node (BCHN)](https://github.com/bitcoin-cash-node/bitcoin-cash-node) v29.0.0.
 
-#### 1. Configure Bitcoin Daemon
+#### 1. Configure Bitcoin Cash Daemon
 
 Edit `bitcoin.conf` to enable RPC:
 ```
