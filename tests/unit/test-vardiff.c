@@ -11,14 +11,14 @@
  * Consolidated from: test-vardiff.c, test-fractional-vardiff.c, test-vardiff-comprehensive.c
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "config.h"
 #include "../test_common.h"
 #include "libckpool.h"
 

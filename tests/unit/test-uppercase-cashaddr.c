@@ -11,13 +11,13 @@
  * as distinct usernames by the pool — that is a user configuration choice.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "config.h"
 #include "../test_common.h"
 #include "libckpool.h"
 
