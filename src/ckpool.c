@@ -1806,15 +1806,15 @@ int main(int argc, char **argv)
 			ckp.btcdpass[i] = strdup("pass");
 	}
 	if (!ckp.donaddress)
-		ckp.donaddress = "bc1q8qkesw5kyplv7hdxyseqls5m78w5tqdfd40lf5";
+		ckp.donaddress = "bitcoincash:qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug";
 	if (ckp.donation < 0.1)
 		ckp.donation = 0;
 	else if (ckp.donation > 99.9)
 		ckp.donation = 99.9;
 	/* Donations on testnet are meaningless but required for complete
 	 * testing. Testnet and regtest addresses */
-	ckp.tndonaddress = "tb1q5fyv7tue73y4zxezh2c685qpwx0cfngfxlrgxh";
-	ckp.rtdonaddress = "bcrt1qlk935ze2fsu86zjp395uvtegztrkaezawxx0wf";
+	ckp.tndonaddress = "bchtest:qq6xn8wzpc2cxdy879sca3gzvs55ru84wujc6c4lxm";
+	ckp.rtdonaddress = "bchreg:qq6xn8wzpc2cxdy879sca3gzvs55ru84wu8hcfhc5g";
 
 	if (!ckp.btcaddress && !ckp.btcsolo && !ckp.proxy)
 		quit(0, "Non-solo mining must have a btcaddress in config, aborting!");

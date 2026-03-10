@@ -27,6 +27,7 @@
 #include <netinet/tcp.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/time.h>
 #include <time.h>
 #include <math.h>
@@ -1769,29 +1770,30 @@ static bool cashaddr_to_hash(const char *addr, uchar *hash160)
 	const char *ptr;
 	int prefix_len = 0;
 
-	/* Check for CashAddr prefix (bitcoincash:, bchtest:, or bchreg:) */
-	if (strncmp(addr, "bitcoincash:", 12) == 0) {
+	/* Check for CashAddr prefix (case-insensitive: bitcoincash:, bchtest:, or bchreg:) */
+	if (strncasecmp(addr, "bitcoincash:", 12) == 0) {
 		prefix_len = 12;
-	} else if (strncmp(addr, "bchtest:", 8) == 0) {
+	} else if (strncasecmp(addr, "bchtest:", 8) == 0) {
 		prefix_len = 8;
-	} else if (strncmp(addr, "bchreg:", 7) == 0) {
+	} else if (strncasecmp(addr, "bchreg:", 7) == 0) {
 		prefix_len = 7;
 	} else {
 		return false;
 	}
 
 	ptr = addr + prefix_len;
-	if (*ptr != 'q' && *ptr != 'p')
+	/* Version byte starts base32 encoding: 'q'/'Q' for P2KH (type 0), 'p'/'P' for P2SH (type 8) */
+	if (tolower((unsigned char)*ptr) != 'q' && tolower((unsigned char)*ptr) != 'p')
 		return false;
 
-	ptr++; /* Skip the q/p prefix byte indicator */
+	/* DO NOT skip ptr - 'q'/'p' is the first character of base32-encoded payload */
 
 	/* Base32 decode the remainder (5 bits per char, 8 bits per byte) */
 	uint32_t acc = 0;
 	int bits = 0;
 
 	while (*ptr && payload_len < 25) {
-		const char *pos = strchr(base32_chars, *ptr);
+		const char *pos = strchr(base32_chars, tolower((unsigned char)*ptr));
 		if (!pos)
 			return false; /* Invalid character */
 
@@ -1822,8 +1824,28 @@ static int address_to_pubkeytxn(char *pkh, const char *addr)
 {
 	uchar hash160[20];
 	char b58bin[25] = {};
+	char prefixed_addr[128];
+	const char *prefixes[] = {"bitcoincash:", "bchtest:", "bchreg:"};
+	int i;
 
-	/* Try CashAddr format first (bitcoincash:q..., bchtest:q..., bchreg:q...) */
+	/* Check if this looks like a CashAddr without prefix (starts with q/p case-insensitive, long enough) */
+	if ((tolower((unsigned char)addr[0]) == 'q' || tolower((unsigned char)addr[0]) == 'p') && strlen(addr) > 40) {
+		/* Try adding each network prefix until one works */
+		for (i = 0; i < 3; i++) {
+			snprintf(prefixed_addr, sizeof(prefixed_addr), "%s%s", prefixes[i], addr);
+			if (cashaddr_to_hash(prefixed_addr, hash160)) {
+				pkh[0] = 0x76;
+				pkh[1] = 0xa9;
+				pkh[2] = 0x14;
+				memcpy(&pkh[3], hash160, 20);
+				pkh[23] = 0x88;
+				pkh[24] = 0xac;
+				return 25;
+			}
+		}
+	}
+
+	/* Try CashAddr format with explicit prefix (bitcoincash:q..., bchtest:q..., bchreg:q...) */
 	if (cashaddr_to_hash(addr, hash160)) {
 		pkh[0] = 0x76;
 		pkh[1] = 0xa9;
@@ -1849,8 +1871,26 @@ static int address_to_scripttxn(char *psh, const char *addr)
 {
 	uchar hash160[20];
 	char b58bin[25] = {};
+	char prefixed_addr[128];
+	const char *prefixes[] = {"bitcoincash:", "bchtest:", "bchreg:"};
+	int i;
 
-	/* Try CashAddr format first (bitcoincash:p..., bchtest:p..., bchreg:p...) */
+	/* Check if this looks like a CashAddr without prefix (starts with q/p case-insensitive, long enough) */
+	if ((tolower((unsigned char)addr[0]) == 'q' || tolower((unsigned char)addr[0]) == 'p') && strlen(addr) > 40) {
+		/* Try adding each network prefix until one works */
+		for (i = 0; i < 3; i++) {
+			snprintf(prefixed_addr, sizeof(prefixed_addr), "%s%s", prefixes[i], addr);
+			if (cashaddr_to_hash(prefixed_addr, hash160)) {
+				psh[0] = 0xa9;
+				psh[1] = 0x14;
+				memcpy(&psh[2], hash160, 20);
+				psh[22] = 0x87;
+				return 23;
+			}
+		}
+	}
+
+	/* Try CashAddr format with explicit prefix (bitcoincash:p..., bchtest:p..., bchreg:p...) */
 	if (cashaddr_to_hash(addr, hash160)) {
 		psh[0] = 0xa9;
 		psh[1] = 0x14;
