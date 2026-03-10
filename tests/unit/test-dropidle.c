@@ -15,7 +15,6 @@
 #include <sys/time.h>
 #include "../test_common.h"
 #include "libckpool.h"
-#include <sys/time.h>
 
 /* Test dropidle config behavior - default value (0 = disabled)
  * When dropidle is 0, the feature is disabled.
