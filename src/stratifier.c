@@ -6588,6 +6588,21 @@ static void stratum_broadcast_updates(sdata_t *sdata, bool clean)
 	ck_wunlock(&sdata->instance_lock);
 }
 
+static void send_extranonce_not_supported(sdata_t *sdata, json_t *id_val, const int64_t client_id)
+{
+	json_t *val, *err_array;
+
+	err_array = json_array();
+	json_array_append_new(err_array, json_integer(20));
+	json_array_append_new(err_array, json_string("Not supported."));
+	json_array_append_new(err_array, json_null());
+	val = json_object();
+	json_object_set_new_nocheck(val, "result", json_null());
+	json_object_set_new_nocheck(val, "error", err_array);
+	json_object_set_nocheck(val, "id", id_val);
+	stratum_add_send(sdata, val, client_id, SM_EXTRANONCERESULT);
+}
+
 static void send_json_err(sdata_t *sdata, const int64_t client_id, json_t *id_val, const char *err_msg)
 {
 	json_t *val;
@@ -6987,6 +7002,13 @@ static void parse_method(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *clie
 			return;
 		}
 
+		/* Always deny extranonce.subscribe immediately so miners don't stall
+		 * waiting for a response before proceeding with authorisation. */
+		if (cmdmatch(method, "mining.extranonce.subscribe")) {
+			send_extranonce_not_supported(sdata, id_val, client_id);
+			return;
+		}
+
 		LOGINFO("Rejecting %s from unauthorised client %s %s", method,
 			client->identity, client->address);
 		if (cmdmatch(method, "mining.submit")) {
@@ -7013,18 +7035,7 @@ static void parse_method(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *clie
 	}
 
 	if (cmdmatch(method, "mining.extranonce.subscribe")) {
-		json_t *val, *err_array;
-
-		err_array = json_array();
-		json_array_append_new(err_array, json_integer(20));
-		json_array_append_new(err_array, json_string("Not supported."));
-		json_array_append_new(err_array, json_null());
-
-		val = json_object();
-		json_object_set_new_nocheck(val, "result", json_null());
-		json_object_set_new_nocheck(val, "error", err_array);
-		json_object_set_nocheck(val, "id", id_val);
-		stratum_add_send(sdata, val, client_id, SM_EXTRANONCERESULT);
+		send_extranonce_not_supported(sdata, id_val, client_id);
 		return;
 	}
 
