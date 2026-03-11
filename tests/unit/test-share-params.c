@@ -134,6 +134,33 @@ static void test_workername_validation(void)
     assert_true(!memcmp(workername, "_", 1));
 }
 
+/* Test that share_codes[] maps each share_err to a valid Stratum error code.
+ * Stratum protocol defines: 20=Other, 21=Job not found/Stale,
+ * 22=Duplicate, 23=Low difficulty, 24=Unauthorized, 25=Not subscribed. */
+static void test_share_error_codes(void)
+{
+    /* Verify array lengths match — same index scheme: (enum + 9) */
+    const int nerrs = sizeof(share_errs) / sizeof(share_errs[0]);
+    const int ncodes = sizeof(share_codes) / sizeof(share_codes[0]);
+    assert_int_equal(nerrs, ncodes);
+
+    /* Spot-check the codes most relevant to miner UX */
+    assert_int_equal(SHARE_CODE(SE_STALE),           21);
+    assert_int_equal(SHARE_CODE(SE_INVALID_JOBID),   21);
+    assert_int_equal(SHARE_CODE(SE_DUPE),            22);
+    assert_int_equal(SHARE_CODE(SE_HIGH_DIFF),       23);
+    assert_int_equal(SHARE_CODE(SE_NTIME_INVALID),   20);
+    assert_int_equal(SHARE_CODE(SE_WORKER_MISMATCH), 20);
+    assert_int_equal(SHARE_CODE(SE_NO_NONCE),        20);
+    assert_int_equal(SHARE_CODE(SE_NO_JOBID),        20);
+
+    /* SE_NONE maps to 0; all other codes must be recognised Stratum values (20-25) */
+    for (int i = 0; i < ncodes; i++) {
+        int code = share_codes[i];
+        assert_true(code == 0 || (code >= 20 && code <= 25));
+    }
+}
+
 /* Test parameter array size validation */
 static void test_params_array_size(void)
 {
@@ -192,6 +219,7 @@ int main(void)
     test_ntime_validation();
     test_job_id_validation();
     test_workername_validation();
+    test_share_error_codes();
     test_params_array_size();
 
     if (perf_tests_enabled()) {

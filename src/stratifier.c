@@ -6144,7 +6144,17 @@ static void check_best_diff(sdata_t *sdata, user_instance_t *user,worker_instanc
 	stratum_send_message(sdata, client, buf);
 }
 
-#define JSON_ERR(err) json_string(SHARE_ERR(err))
+/* Build a standard Stratum error array [code, "message", null].
+ * Miners (e.g. BitAxe) expect this format per the Stratum protocol spec. */
+static json_t *json_err_array(const enum share_err err)
+{
+	json_t *arr = json_array();
+	json_array_append_new(arr, json_integer(SHARE_CODE(err)));
+	json_array_append_new(arr, json_string(SHARE_ERR(err)));
+	json_array_append_new(arr, json_null());
+	return arr;
+}
+#define JSON_ERR(err) json_err_array(err)
 
 /* Format difficulty for logging with trailing zeros stripped */
 static void format_diff(char *buf, size_t len, double diff)

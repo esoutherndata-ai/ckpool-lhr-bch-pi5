@@ -315,6 +315,29 @@ static const char __maybe_unused *share_errs[] = {
 
 #define SHARE_ERR(x) share_errs[((x) + 9)]
 
+/* Standard Stratum error codes for each share_err value.
+ * Indexed same as share_errs: (enum value + 9). */
+static const int __maybe_unused share_codes[] = {
+	20, /* SE_INVALID_NONCE2 */
+	20, /* SE_WORKER_MISMATCH */
+	20, /* SE_NO_NONCE */
+	20, /* SE_NO_NTIME */
+	20, /* SE_NO_NONCE2 */
+	20, /* SE_NO_JOBID */
+	20, /* SE_NO_USERNAME */
+	20, /* SE_INVALID_SIZE */
+	20, /* SE_NOT_ARRAY */
+	 0, /* SE_NONE */
+	21, /* SE_INVALID_JOBID */
+	21, /* SE_STALE */
+	20, /* SE_NTIME_INVALID */
+	22, /* SE_DUPE */
+	23, /* SE_HIGH_DIFF */
+	20, /* SE_INVALID_VERSION_MASK */
+};
+
+#define SHARE_CODE(x) share_codes[((x) + 9)]
+
 typedef struct ckmutex mutex_t;
 
 struct ckmutex {
