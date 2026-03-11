@@ -1769,7 +1769,7 @@ char *http_base64(const char *src)
 static bool cashaddr_decode_body(const char *ptr, uchar *hash160)
 {
 	const char *base32_chars = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-	uchar payload[25]; /* version byte + hash160 + 4-byte checksum */
+	uchar payload[25]; /* version byte + hash160 + partial checksum (40-bit, not verified) */
 	int payload_len = 0;
 	uint32_t acc = 0;
 	int bits = 0;
