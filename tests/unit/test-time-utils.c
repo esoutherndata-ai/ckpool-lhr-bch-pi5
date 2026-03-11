@@ -3,6 +3,8 @@
  * Tests time difference calculations and decay functions
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +14,6 @@
 #include <sys/time.h>
 #include <time.h>
 
-#include "config.h"
 #include "../test_common.h"
 #include "libckpool.h"
 
