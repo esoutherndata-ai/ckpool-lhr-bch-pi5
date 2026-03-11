@@ -3708,10 +3708,10 @@ static void block_solve(ckpool_t *ckp, json_t *val)
 		user_instance_t *user;
 		char *s;
 
-ASPRINTF(&msg, "Block %d solved by %s @ %s!", height, workername, ckp->name);
-			LOGWARNING("Solved and confirmed block %d by %s", height, workername);
-			user = user_by_workername(sdata, workername);
-			worker = get_worker(sdata, user, workername);
+		ASPRINTF(&msg, "Block %d solved by %s @ %s!", height, workername, ckp->name);
+		LOGWARNING("Solved and confirmed block %d by %s", height, workername);
+		user = user_by_workername(sdata, workername);
+		worker = get_worker(sdata, user, workername);
 
 		ck_rlock(&sdata->instance_lock);
 		user_val = user_stats(user);
@@ -3724,7 +3724,7 @@ ASPRINTF(&msg, "Block %d solved by %s @ %s!", height, workername, ckp->name);
 		dealloc(s);
 		s = json_dumps(worker_val, JSON_NO_UTF8 | JSON_PRESERVE_ORDER);
 		json_decref(worker_val);
-LOGWARNING("Worker %s:%s", workername, s);
+		LOGWARNING("Worker %s:%s", workername, s);
 		dealloc(s);
 	}
 	stratum_broadcast_message(sdata, msg);

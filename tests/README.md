@@ -65,6 +65,7 @@ make check-perf
 ./tests/unit/test-donation
 ./tests/unit/test-useragent
 ./tests/unit/test-address
+./tests/unit/test-uppercase-cashaddr
 ./tests/unit/test-string-utils
 ./tests/unit/test-time-utils
 ./tests/unit/test-fulltest
