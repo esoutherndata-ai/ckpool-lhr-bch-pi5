@@ -234,7 +234,7 @@ Point mining hardware to the pool:
     - `x` - Default password (any value accepted)
     - `diff=X` - Suggest difficulty where `X` is numeric (e.g., `diff=200` or `diff=0.001`).
 
-Any valid Bitcoin Cash address works as the username. CashAddr addresses are **case-insensitive** and can be **prefixed** (e.g., `bitcoincash:qz85...`, `bchtest:qz85...`) or **unprefixed** (e.g., `qz85...`). Uppercase variants like `QZ85...` or `BITCOINCASH:QZ85...` are also accepted. Append `.workername` to track multiple miners separately (worker suffix case is preserved).
+Any valid Bitcoin Cash address works as the username. Append `.workername` to track multiple miners separately.
 
 ---
 
