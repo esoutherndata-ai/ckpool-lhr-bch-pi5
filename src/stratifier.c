@@ -7023,9 +7023,9 @@ static void parse_method(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *clie
 			client->identity, client->address);
 		if (cmdmatch(method, "mining.submit")) {
 			json_t *val = json_object();
-			json_object_set_new_nocheck(val, "result", json_null());
+			json_object_set_new_nocheck(val, "result", json_boolean(false));
 			json_object_set_nocheck(val, "id", id_val);
-			json_object_set_new_nocheck(val, "error", json_string("Stale"));
+			json_object_set_new_nocheck(val, "error", JSON_ERR(SE_STALE));
 			stratum_add_send(sdata, val, client_id, SM_SHARERESULT);
 		}
 		return;
