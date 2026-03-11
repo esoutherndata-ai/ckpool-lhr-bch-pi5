@@ -1,10 +1,10 @@
 /*
- * CashAddr case-insensitivity test suite.
+ * CashAddr uppercase/lowercase equivalence test suite.
  *
  * Policy: the node (generator_checkaddr) is the sole validity gatekeeper.
- * The local decoder (address_to_txn) accepts any case — uppercase, lowercase,
- * and mixed-case CashAddr all decode to the same hash160 as their canonical
- * lowercase form.  This matches upstream BTC ckpool logic where address_to_txn
+ * Mixed-case CashAddr is rejected by the node and never reaches address_to_txn.
+ * Valid inputs are all-lowercase or all-uppercase — both must decode to the
+ * same hash160. This matches upstream BTC ckpool logic where address_to_txn
  * is a pure trusted converter operating on node-validated input.
  *
  * Prefix handling: prefixed (bchtest:qq...) and unprefixed (qq...) are treated
@@ -43,12 +43,11 @@ static void assert_txn_len(int len, int expected, const char *label)
 /* Uppercase and lowercase unprefixed CashAddr must decode to same hash160 */
 static void test_unprefixed_case_insensitive(void)
 {
-	char txn_lower[25] = {0}, txn_upper[25] = {0}, txn_mixed[25] = {0};
+	char txn_lower[25] = {0}, txn_upper[25] = {0};
 	int len;
 
 	const char *lower = "qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a";
 	const char *upper = "QPM2QSZNHKS23Z7629MMS6S4CWEF74VCWVY22GDX6A";
-	const char *mixed = "Qpm2QSznhks23z7629mms6s4cwef74vcwvY22GDX6a";
 
 	len = address_to_txn(txn_lower, lower, false, false);
 	assert_txn_len(len, 25, "unprefixed lowercase");
@@ -56,11 +55,7 @@ static void test_unprefixed_case_insensitive(void)
 	len = address_to_txn(txn_upper, upper, false, false);
 	assert_txn_len(len, 25, "unprefixed uppercase");
 
-	len = address_to_txn(txn_mixed, mixed, false, false);
-	assert_txn_len(len, 25, "unprefixed mixed-case");
-
 	assert_h160_eq(txn_lower, txn_upper, "unprefixed lowercase", "unprefixed uppercase");
-	assert_h160_eq(txn_lower, txn_mixed, "unprefixed lowercase", "unprefixed mixed-case");
 
 	printf("  Unprefixed case-insensitive: PASS\n");
 }
@@ -68,12 +63,11 @@ static void test_unprefixed_case_insensitive(void)
 /* Uppercase and lowercase prefixed CashAddr must decode to same hash160 */
 static void test_prefixed_case_insensitive(void)
 {
-	char txn_lower[25] = {0}, txn_upper[25] = {0}, txn_mixed[25] = {0};
+	char txn_lower[25] = {0}, txn_upper[25] = {0};
 	int len;
 
 	const char *lower = "bitcoincash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a";
 	const char *upper = "BITCOINCASH:QPM2QSZNHKS23Z7629MMS6S4CWEF74VCWVY22GDX6A";
-	const char *mixed = "BitcoinCash:qpm2qsznhks23z7629mms6s4cwef74vcwvy22gdx6a";
 
 	len = address_to_txn(txn_lower, lower, false, false);
 	assert_txn_len(len, 25, "prefixed lowercase");
@@ -81,11 +75,7 @@ static void test_prefixed_case_insensitive(void)
 	len = address_to_txn(txn_upper, upper, false, false);
 	assert_txn_len(len, 25, "prefixed uppercase");
 
-	len = address_to_txn(txn_mixed, mixed, false, false);
-	assert_txn_len(len, 25, "prefixed mixed-case");
-
 	assert_h160_eq(txn_lower, txn_upper, "prefixed lowercase", "prefixed uppercase");
-	assert_h160_eq(txn_lower, txn_mixed, "prefixed lowercase", "prefixed mixed-case");
 
 	printf("  Prefixed case-insensitive: PASS\n");
 }

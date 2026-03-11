@@ -155,41 +155,6 @@ static void test_b58tobin_known_addresses(void)
     }
 }
 
-/* Test b58tobin() with various address lengths */
-static void test_b58tobin_address_lengths(void)
-{
-    char b58bin[25];
-    
-    /* Test: Short address (all 1's - minimum) */
-    memset(b58bin, 0, 25);
-    b58tobin(b58bin, "1");
-    /* Single character "1" decodes to a very small value, may be in later bytes */
-    /* Just verify it doesn't crash and produces some non-zero output somewhere */
-    bool has_data1 = false;
-    for (int j = 0; j < 25; j++) {
-        if (b58bin[j] != 0) {
-            has_data1 = true;
-            break;
-        }
-    }
-    /* Note: "1" decodes to a very small value, might be all zeros in first bytes */
-    /* The function should not crash at least */
-    
-    /* Test: Standard P2PKH address length */
-    memset(b58bin, 0, 25);
-    b58tobin(b58bin, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa");
-    /* Should produce output - check if any byte is non-zero */
-    /* Note: First byte might be 0x00 (version byte for P2PKH) */
-    bool has_data2 = false;
-    for (int j = 0; j < 25; j++) {
-        if (b58bin[j] != 0) {
-            has_data2 = true;
-            break;
-        }
-    }
-    assert_true(has_data2);
-}
-
 /* Test b58tobin() edge cases */
 static void test_b58tobin_edge_cases(void)
 {
@@ -431,43 +396,31 @@ static void test_encoding_invalid_bitcoin_addresses(void)
 /* Test buffer overflow protection in hex2bin */
 static void test_encoding_buffer_overflow_protection(void)
 {
-	/* Test that hex2bin doesn't write beyond buffer bounds */
-	
-	struct {
-		const char *hex;
-		size_t buf_len;  /* Buffer size in bytes */
-		bool should_fit;
-	} cases[] = {
-		/* Fits exactly */
-		{ "00",       1,  true  },
-		{ "0011",     2,  true  },
-		{ "001122",   3,  true  },
-		
-		/* Doesn't fit */
-		{ "0011",     1,  false },  /* 2 bytes of hex, 1 byte buffer */
-		{ "001122",   2,  false },  /* 3 bytes of hex, 2 byte buffer */
-		{ "00112233", 3,  false },  /* 4 bytes of hex, 3 byte buffer */
-	};
-	
-	for (int i = 0; i < (int)(sizeof(cases) / sizeof(cases[0])); i++) {
-		size_t hex_len = strlen(cases[i].hex);
-		size_t required_bytes = hex_len / 2;
-		
-		/* Allocate exact buffer size (not more) */
-		uchar *buf = calloc(1, cases[i].buf_len);
-		assert_non_null(buf);
-		
-		bool result = _hex2bin(buf, cases[i].hex, cases[i].buf_len, __FILE__, __func__, __LINE__);
-		
-		if (cases[i].should_fit) {
-			/* Should succeed when buffer is large enough */
-			assert_true(result || required_bytes > cases[i].buf_len);
-		} else {
-			/* Should fail (or at least not overflow) when buffer too small */
-			assert_true(required_bytes > cases[i].buf_len);
-		}
-		
-		free(buf);
+	/* Case 1: Exact fit — returns true, correct bytes written */
+	{
+		uchar buf[3] = {0};
+		bool result = _hex2bin(buf, "aabbcc", 3, __FILE__, __func__, __LINE__);
+		assert_true(result);
+		assert_true(buf[0] == 0xaa && buf[1] == 0xbb && buf[2] == 0xcc);
+	}
+
+	/* Case 2: Undersized buffer — returns false AND does not write beyond len.
+	 * Allocate 4 bytes, pass len=2, verify bytes 2-3 (sentinel) are untouched. */
+	{
+		uchar buf[4];
+		memset(buf, 0xAB, 4);  /* fill with sentinel */
+		bool result = _hex2bin(buf, "00112233", 2, __FILE__, __func__, __LINE__);
+		assert_false(result);
+		/* Sentinel bytes beyond len must be untouched */
+		assert_true(buf[2] == 0xAB && buf[3] == 0xAB);
+	}
+
+	/* Case 3: len > hex bytes — returns false (len is exact, not capacity).
+	 * Documents the API contract: caller must pass the exact decode length. */
+	{
+		uchar buf[4] = {0};
+		bool result = _hex2bin(buf, "0011", 4, __FILE__, __func__, __LINE__);
+		assert_false(result);
 	}
 }
 
@@ -607,7 +560,6 @@ int main(void)
     /* Section 2: Base58 decoding tests */
     printf("\n[SECTION 2: BASE58 DECODING]\n");
     run_test(test_b58tobin_known_addresses);
-    run_test(test_b58tobin_address_lengths);
     run_test(test_b58tobin_edge_cases);
     run_test(test_b58tobin_integration);
     run_test(test_b58tobin_p2sh_addresses);

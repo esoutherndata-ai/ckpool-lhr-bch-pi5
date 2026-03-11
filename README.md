@@ -268,10 +268,7 @@ All configuration options are listed below.
 
 **"donaddress"** : Bitcoin Cash address for donation payments. **OPTIONAL**
 - Type: String
-- Values: Any valid Bitcoin Cash address (CashAddr or legacy Base58)
-  - CashAddr: Prefixed (`bitcoincash:qz85...`, `bchtest:qz85...`, `bchreg:qz85...`) or unprefixed (`qz85...`)
-  - CashAddr is **case-insensitive**: uppercase, lowercase, or mixed case accepted
-  - Legacy Base58: Case-sensitive P2PKH/P2SH addresses
+- Values: Any valid Bitcoin Cash address (CashAddr prefixed/unprefixed, or legacy Base58)
 - Default: bitcoincash:qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug
 - Note: Only used when "donation" is configured and greater than 0. BTC bech32 addresses (bc1...) are not supported.
 - Example: `"donaddress" : "qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug"`
