@@ -444,7 +444,7 @@ static const miner_profile_t miner_profiles[] = {
 /* Convert hashrate to DSPS assuming optimal is 3.33x dsps */
 static double hashrate_to_dsps(double hashrate)
 {
-	return hashrate / (double)(1UL << 32);
+	return hashrate / (double)(1ULL << 32);
 }
 
 /* Test: Verify all miner types find appropriate starting difficulty */

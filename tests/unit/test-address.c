@@ -157,14 +157,17 @@ static void test_cashaddr_p2sh_mainnet(void)
 
 
 
-/* Test that BTC bech32 addresses are NOT supported */
-static void test_bech32_rejection(void)
+/* BTC bech32 addresses share no decoder with CashAddr; they fall through to
+ * Base58 and produce garbage. In production, generator_checkaddr (node) blocks
+ * them before address_to_txn is ever called. Here we verify that bech32 input
+ * produces a hash160 that is distinct from any valid CashAddr address. */
+static void test_bech32_not_treated_as_cashaddr(void)
 {
 	char bech32_txn[25] = {0};
 	char valid_cashaddr_txn[25] = {0};
 	int len1, len2;
 	
-	print_test_header("BTC Bech32 Rejection (NOT supported for BCH)");
+	print_test_header("BTC Bech32 — not decoded as CashAddr");
 	
 	/* Bech32 addresses should be processed as garbage Base58, producing
 	 * different hash160 output than a valid BCH CashAddr address */
@@ -190,10 +193,10 @@ static void test_bech32_rejection(void)
 		/* But the hash160 (bytes 3-22) MUST be different from valid BCH address */
 		assert_true(memcmp(&bech32_txn[3], &valid_cashaddr_txn[3], 20) != 0);
 		
-		printf("  ✓ Produces different hash160 than valid CashAddr (rejected)\n");
+		printf("  ✓ Produces different hash160 than valid CashAddr (not treated as CashAddr)\n");
 	}
 	
-	printf("  ✓ All bech32 addresses produce incorrect output (not treated as valid CashAddr)\n");
+	printf("  ✓ All bech32 addresses produce garbage hash160 — distinguishable from valid CashAddr\n");
 }
 
 /* Test various edge cases */
@@ -234,7 +237,7 @@ int main(void)
 	run_test(test_cashaddr_p2pkh_testnet);
 	run_test(test_cashaddr_p2pkh_regtest);
 	run_test(test_cashaddr_p2sh_mainnet);
-	run_test(test_bech32_rejection);
+	run_test(test_bech32_not_treated_as_cashaddr);
 	run_test(test_edge_cases);
 	
 	printf("\n");

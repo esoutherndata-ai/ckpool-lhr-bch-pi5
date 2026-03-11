@@ -5698,7 +5698,7 @@ static void stratum_send_message(sdata_t *sdata, const stratum_instance_t *clien
 	stratum_add_send(sdata, json_msg, client->id, SM_MSG);
 }
 
-double time_bias(const double tdiff, const double period)
+static double time_bias(const double tdiff, const double period)
 {
 	double dexp = tdiff / period;
 
