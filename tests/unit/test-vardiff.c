@@ -1156,9 +1156,9 @@ static void test_vardiff_normalize_performance(void)
 	tv_t start, end;
 	const int iterations = 10000000;  /* 10M calls */
 	
+	double test_vals[] = {0.5, 1.0, 1.5, 10.5, 100.5, 1000.5};
 	tv_time(&start);
 	for (int i = 0; i < iterations; i++) {
-		double test_vals[] = {0.5, 1.0, 1.5, 10.5, 100.5, 1000.5};
 		for (int j = 0; j < 6; j++) {
 			(void)normalize_pool_diff(test_vals[j]);
 		}

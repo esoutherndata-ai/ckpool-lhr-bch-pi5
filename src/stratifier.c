@@ -5863,8 +5863,8 @@ static void add_submit(ckpool_t *ckp, stratum_instance_t *client, const double d
 	if (fabs(client->diff - new_diff) < DIFF_EPSILON)
 		return;
 
-	LOGINFO("Client %s biased dsps %.2f dsps %.2f drr %.2f adjust diff from %lf to: %lf ",
-		client->identity, dsps, client->dsps5, drr, client->diff, new_diff);
+	LOGINFO("Client %s biased dsps %.2f (%s) drr %.2f adjust diff from %lf to: %lf ",
+		client->identity, dsps, adjustment_tier, drr, client->diff, new_diff);
 	LOGDEBUG("Client %s tier %s ssdc %.0f tdiff %.1fs dsps15s %.2f dsps1 %.2f dsps5 %.2f",
 		client->identity, adjustment_tier, client->ssdc, tdiff, client->dsps15s, client->dsps1, client->dsps5);
 
