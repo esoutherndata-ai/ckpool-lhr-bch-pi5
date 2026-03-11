@@ -109,8 +109,8 @@ sudo make install
 
 ## Use Case
 
-Solo mode allows miners to mine directly to their own Bitcoin address without
-pooling with others. Each miner specifies their Bitcoin address as their
+Solo mode allows miners to mine directly to their own Bitcoin Cash address without
+pooling with others. Each miner specifies their Bitcoin Cash address as their
 username, and any blocks found are paid directly to that address.
 
 **Ideal for:**
@@ -229,12 +229,12 @@ src/ckpool -B
 
 Point mining hardware to the pool:
 - **URL**: `192.168.1.100:3333` (pool IP address, default port 3333)
-- **Username**: Your Bitcoin address, optionally with a worker name (e.g., `bc1q8qkesw5kyplv7hdxyseqls5m78w5tqdfd40lf5.worker1`)
+- **Username**: Your Bitcoin Cash address, optionally with a worker name (e.g., `qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug.worker1`)
 - **Password**: `x, diff=200`
     - `x` - Default password (any value accepted)
     - `diff=X` - Suggest difficulty where `X` is numeric (e.g., `diff=200` or `diff=0.001`).
 
-Any valid Bitcoin address works as the username. Append `.workername` to track multiple miners separately.
+Any valid Bitcoin Cash address works as the username. Append `.workername` to track multiple miners separately.
 
 ---
 
@@ -266,12 +266,12 @@ All configuration options are listed below.
 ]
 ```
 
-**"donaddress"** : Bitcoin address for donation payments. **OPTIONAL**
+**"donaddress"** : Bitcoin Cash address for donation payments. **OPTIONAL**
 - Type: String
-- Values: Any valid Bitcoin address
-- Default: bc1q8qkesw5kyplv7hdxyseqls5m78w5tqdfd40lf5
-- Note: Only used when "donation" is configured and greater than 0.
-- Example: `"donaddress" : "bc1q..."`
+- Values: Any valid Bitcoin Cash address (CashAddr prefixed/unprefixed, or legacy Base58)
+- Default: bitcoincash:qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug
+- Note: Only used when "donation" is configured and greater than 0. BTC bech32 addresses (bc1...) are not supported.
+- Example: `"donaddress" : "qz85msghggld3smflk8flv0yza4c0c5drqgdgeruug"`
 
 **"donation"** : Percentage of block reward to donate. **OPTIONAL**
 - Type: Double
@@ -399,8 +399,10 @@ All configuration options are listed below.
 > [!NOTE]
 > You can mine with a pruned blockchain, though it may add latency.
 
-> [!NOTE]
-> Mining on testnet may create cascading solved blocks when difficulty is 1.
-> This is normal behavior optimized for mainnet where block solving is rare.
-
 ---
+
+## Other Modes
+
+ckpool-lhr is optimized and documented for solo mining. Although it inherits all capabilities from upstream CKPool, other modes are untested and therefore unsupported.
+
+For documentation on pool, proxy, and passthrough modes, please refer to the [original CKPool documentation](https://bitbucket.org/ckolivas/ckpool).

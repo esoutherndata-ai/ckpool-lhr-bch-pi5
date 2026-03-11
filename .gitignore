@@ -8,6 +8,7 @@ config.guess
 config.sub
 configure
 configure~
+confdefs.h
 depcomp
 missing
 install-sh

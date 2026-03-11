@@ -77,9 +77,9 @@ bool validate_address(connsock_t *cs, const char *address, bool *script, bool *s
 			*script = true;
 		/* Now look to see this isn't a bech32: We can't support
 		 * bech32 without knowing if it's a pubkey or a script.
-		 * Support: 1/m (P2PKH), 3/2 (P2SH), bitcoincash:/bchtest:/bchreg: (CashAddr) */
-		else if (address[0] != '1' && address[0] != 'm' && strncmp(address, "bitcoincash:", 12) && 
-		         strncmp(address, "bchtest:", 8) && strncmp(address, "bchreg:", 7))
+		 * Support: 1/m (P2PKH), 3/2 (P2SH), bitcoincash:/bchtest:/bchreg: (CashAddr, case-insensitive) */
+		else if (address[0] != '1' && address[0] != 'm' && strncasecmp(address, "bitcoincash:", 12) &&
+		         strncasecmp(address, "bchtest:", 8) && strncasecmp(address, "bchreg:", 7))
 			ret = false;
 		goto out;
 	}

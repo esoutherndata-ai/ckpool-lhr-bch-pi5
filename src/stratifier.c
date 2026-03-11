@@ -5054,6 +5054,7 @@ static void decay_client(stratum_instance_t *client, double diff, tv_t *now_t)
 	diff += client->uadiff;
 	client->uadiff = 0;
 	decay_time(&client->dsps1, diff, tdiff, MIN1);
+	decay_time(&client->dsps15s, diff, tdiff, SEC15);
 	decay_time(&client->dsps5, diff, tdiff, MIN5);
 	decay_time(&client->dsps60, diff, tdiff, HOUR);
 	decay_time(&client->dsps1440, diff, tdiff, DAY);
@@ -5072,6 +5073,7 @@ static void decay_worker(worker_instance_t *worker, double diff, tv_t *now_t)
 	diff += worker->uadiff;
 	worker->uadiff = 0;
 	decay_time(&worker->dsps1, diff, tdiff, MIN1);
+	decay_time(&worker->dsps15s, diff, tdiff, SEC15);
 	decay_time(&worker->dsps5, diff, tdiff, MIN5);
 	decay_time(&worker->dsps60, diff, tdiff, HOUR);
 	decay_time(&worker->dsps1440, diff, tdiff, DAY);
@@ -5090,6 +5092,7 @@ static void decay_user(user_instance_t *user, double diff, tv_t *now_t)
 	diff += user->uadiff;
 	user->uadiff = 0;
 	decay_time(&user->dsps1, diff, tdiff, MIN1);
+	decay_time(&user->dsps15s, diff, tdiff, SEC15);
 	decay_time(&user->dsps5, diff, tdiff, MIN5);
 	decay_time(&user->dsps60, diff, tdiff, HOUR);
 	decay_time(&user->dsps1440, diff, tdiff, DAY);
@@ -5765,21 +5768,46 @@ static void add_submit(ckpool_t *ckp, stratum_instance_t *client, const double d
 
 	client->ssdc++;
 	bdiff = sane_tdiff(&now_t, &client->first_share);
-	bias = time_bias(bdiff, 300);
 	tdiff = sane_tdiff(&now_t, &client->ldc);
 
-	/* Check the difficulty every 240 seconds or as many shares as we
-	 * should have had in that time, whichever comes first. */
-	if (client->ssdc < 72 && tdiff < 240)
+	/* Check difficulty if any condition is met:
+	 * 1. Ultra-fast: 144+ shares in <15 seconds since last change
+	 * 2. Fast: 72+ shares at any time
+	 * 3. Time: 240 seconds elapsed since last change */
+	if (client->ssdc >= 144 && tdiff < 15) {
+		/* Ultra-fast threshold met - proceed with check */
+	} else if (client->ssdc < 72 && tdiff < 240) {
+		/* Neither fast nor time threshold met - return early */
 		return;
+	}
 
 	if (diff != client->diff) {
 		client->ssdc = 0;
 		return;
 	}
 
-	/* Diff rate ratio */
-	dsps = client->dsps5 / bias;
+	/* Diff rate ratio.
+	 * Use different time windows based on share submission rate:
+	 * - Ultra-fast (144+ shares in <15s): 15-second rolling average
+	 * - Fast (72+ shares): 60-second rolling average
+	 * - Normal: 5-minute rolling average for stable tracking */
+	const char *adjustment_tier;
+	if (client->ssdc >= 144 && tdiff < 15) {
+		/* Ultra-fast path: 15-second EMA with time bias compensation */
+		bias = time_bias(bdiff, 15);
+		dsps = client->dsps15s / bias;
+		adjustment_tier = "15s";
+	} else if (client->ssdc >= 72) {
+		/* Fast path: 60-second EMA with time bias compensation */
+		bias = time_bias(bdiff, 60);
+		dsps = client->dsps1 / bias;
+		adjustment_tier = "1m";
+	} else {
+		/* Normal path: 5-minute rolling average */
+		bias = time_bias(bdiff, 300);
+		dsps = client->dsps5 / bias;
+		adjustment_tier = "5m";
+	}
 	drr = dsps / (double)client->diff;
 
 	/* Optimal rate product is 0.3, allow some hysteresis. */
@@ -5835,10 +5863,12 @@ static void add_submit(ckpool_t *ckp, stratum_instance_t *client, const double d
 	if (fabs(client->diff - new_diff) < DIFF_EPSILON)
 		return;
 
-	client->ssdc = 0;
+	LOGINFO("Client %s biased dsps %.2f (%s) drr %.2f adjust diff from %lf to: %lf ",
+		client->identity, dsps, adjustment_tier, drr, client->diff, new_diff);
+	LOGDEBUG("Client %s tier %s ssdc %.0f tdiff %.1fs dsps15s %.2f dsps1 %.2f dsps5 %.2f",
+		client->identity, adjustment_tier, client->ssdc, tdiff, client->dsps15s, client->dsps1, client->dsps5);
 
-	LOGINFO("Client %s biased dsps %.2f dsps %.2f drr %.2f adjust diff from %lf to: %lf ",
-		client->identity, dsps, client->dsps5, drr, client->diff, new_diff);
+	client->ssdc = 0;
 
 	copy_tv(&client->ldc, &now_t);
 	client->diff_change_job_id = next_blockid;
@@ -6131,8 +6161,8 @@ static void format_diff(char *buf, size_t len, double diff)
 }
 
 /* Needs to be entered with client holding a ref count. */
-static json_t *parse_submit(stratum_instance_t *client, json_t *json_msg,
-			    const json_t *params_val, json_t **err_val)
+static json_t *parse_submit(stratum_instance_t *client,
+							const json_t *params_val, json_t **err_val)
 {
 	bool share = false, result = false, invalid = true, submit = false, stale = false;
 	const char *workername, *job_id, *ntime, *version_mask;
@@ -6227,7 +6257,7 @@ static json_t *parse_submit(stratum_instance_t *client, json_t *json_msg,
 	if (unlikely(!wb)) {
 		id = sdata->current_workbase->id;
 		err = SE_INVALID_JOBID;
-		json_set_string(json_msg, "reject-reason", SHARE_ERR(err));
+		*err_val = JSON_ERR(err);
 		strncpy(idstring, job_id, 19);
 		ASPRINTF(&fname, "%s.sharelog", sdata->current_workbase->logdir);
 		goto out_nowb;
@@ -6289,14 +6319,14 @@ static json_t *parse_submit(stratum_instance_t *client, json_t *json_msg,
 			}
 		}
 		err = SE_STALE;
-		json_set_string(json_msg, "reject-reason", SHARE_ERR(err));
+		*err_val = JSON_ERR(err);
 		goto out_submit;
 	}
 no_stale:
 	/* Ntime cannot be less, but allow forward ntime rolling up to max */
 	if (ntime32 < wb->ntime32 || ntime32 > wb->ntime32 + 7000) {
 		err = SE_NTIME_INVALID;
-		json_set_string(json_msg, "reject-reason", SHARE_ERR(err));
+		*err_val = JSON_ERR(err);
 		goto out_put;
 	}
 	invalid = false;
@@ -6329,7 +6359,7 @@ out_nowb:
 				result = true;
 			} else {
 				err = SE_DUPE;
-				json_set_string(json_msg, "reject-reason", SHARE_ERR(err));
+				*err_val = JSON_ERR(err);
 				LOGINFO("Rejected client %s dupe diff %s/%s/%s: %s",
 					client->identity, sdiff_str, diff_str, wdiffsuffix, hexhash);
 				submit = false;
@@ -6338,7 +6368,7 @@ out_nowb:
 			err = SE_HIGH_DIFF;
 			LOGINFO("Rejected client %s high diff %s/%s/%s: %s",
 				client->identity, sdiff_str, diff_str, wdiffsuffix, hexhash);
-			json_set_string(json_msg, "reject-reason", SHARE_ERR(err));
+			*err_val = JSON_ERR(err);
 			submit = false;
 		}
 	}  else
@@ -6368,7 +6398,6 @@ out_nowb:
 	json_set_double(val, "sdiff", sdiff);
 	json_set_string(val, "hash", hexhash);
 	json_set_bool(val, "result", result);
-	json_object_set(val, "reject-reason", json_object_get(json_msg, "reject-reason"));
 	json_object_set(val, "error", *err_val);
 	json_set_int(val, "errn", err);
 	json_set_string(val, "createdate", cdfield);
@@ -6557,6 +6586,21 @@ static void stratum_broadcast_updates(sdata_t *sdata, bool clean)
 		__dec_instance_ref(client);
 	}
 	ck_wunlock(&sdata->instance_lock);
+}
+
+static void send_extranonce_not_supported(sdata_t *sdata, json_t *id_val, const int64_t client_id)
+{
+	json_t *val, *err_array;
+
+	err_array = json_array();
+	json_array_append_new(err_array, json_integer(20));
+	json_array_append_new(err_array, json_string("Not supported."));
+	json_array_append_new(err_array, json_null());
+	val = json_object();
+	json_object_set_new_nocheck(val, "result", json_null());
+	json_object_set_new_nocheck(val, "error", err_array);
+	json_object_set_nocheck(val, "id", id_val);
+	stratum_add_send(sdata, val, client_id, SM_EXTRANONCERESULT);
 }
 
 static void send_json_err(sdata_t *sdata, const int64_t client_id, json_t *id_val, const char *err_msg)
@@ -6958,6 +7002,13 @@ static void parse_method(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *clie
 			return;
 		}
 
+		/* Always deny extranonce.subscribe immediately so miners don't stall
+		 * waiting for a response before proceeding with authorisation. */
+		if (cmdmatch(method, "mining.extranonce.subscribe")) {
+			send_extranonce_not_supported(sdata, id_val, client_id);
+			return;
+		}
+
 		LOGINFO("Rejecting %s from unauthorised client %s %s", method,
 			client->identity, client->address);
 		if (cmdmatch(method, "mining.submit")) {
@@ -6980,6 +7031,11 @@ static void parse_method(ckpool_t *ckp, sdata_t *sdata, stratum_instance_t *clie
 		json_params_t *jp = create_json_params(client_id, method_val, params_val, id_val);
 
 		ckmsgq_add(sdata->stxnq, jp);
+		return;
+	}
+
+	if (cmdmatch(method, "mining.extranonce.subscribe")) {
+		send_extranonce_not_supported(sdata, id_val, client_id);
 		return;
 	}
 
@@ -7853,7 +7909,7 @@ static void sshare_process(ckpool_t *ckp, json_params_t *jp)
 		goto out_decref;
 	}
 	json_msg = json_object();
-	result_val = parse_submit(client, json_msg, jp->params, &err_val);
+	result_val = parse_submit(client, jp->params, &err_val);
 	json_object_set_new_nocheck(json_msg, "result", result_val);
 	json_object_set_new_nocheck(json_msg, "error", err_val ? err_val : json_null());
 	steal_json_id(json_msg, jp);
@@ -8472,8 +8528,11 @@ static void *statsupdate(void *arg)
 
 		ASPRINTF(&fname, "%s/pool/pool.status", ckp->logdir);
 		fp = fopen(fname, "we");
-		if (unlikely(!fp))
+		if (unlikely(!fp)) {
 			LOGERR("Failed to fopen %s", fname);
+			dealloc(fname);
+			goto out_status;
+		}
 		dealloc(fname);
 
 		JSON_CPACK(val, "{si,si,si,si,si,si}",
@@ -8521,17 +8580,6 @@ static void *statsupdate(void *arg)
 		fprintf(fp, "%s\n", s);
 		dealloc(s);
 
-		/* Cleanup transient UA map */
-		if (ua_map) {
-			ua_it = NULL;
-			HASH_ITER(hh, ua_map, ua_it, ua_tmp) {
-				HASH_DEL(ua_map, ua_it);
-				free(ua_it->ua);
-				dealloc(ua_it);
-			}
-			ua_map = NULL;
-		}
-
 		JSON_CPACK(val, "{ss,ss,ss,ss,ss,ss,ss}",
 				"hashrate1m", suffix1,
 				"hashrate5m", suffix5,
@@ -8564,6 +8612,17 @@ static void *statsupdate(void *arg)
 		fprintf(fp, "%s\n", s);
 		dealloc(s);
 		fclose(fp);
+out_status:
+		/* Cleanup transient UA map */
+		if (ua_map) {
+			ua_it = NULL;
+			HASH_ITER(hh, ua_map, ua_it, ua_tmp) {
+				HASH_DEL(ua_map, ua_it);
+				free(ua_it->ua);
+				dealloc(ua_it);
+			}
+			ua_map = NULL;
+		}
 
 		if (ckp->proxy && sdata->proxy) {
 			proxy_t *proxy, *proxytmp, *subproxy, *subtmp;

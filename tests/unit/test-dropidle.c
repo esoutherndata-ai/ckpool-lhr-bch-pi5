@@ -3,6 +3,9 @@
  * Tests idle client detection and drop configuration
  */
 
+/* config.h must be first to define _GNU_SOURCE before system headers */
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,11 +13,8 @@
 #include <stdbool.h>
 #include <math.h>
 #include <sys/time.h>
-
-#include "config.h"
 #include "../test_common.h"
 #include "libckpool.h"
-#include <sys/time.h>
 
 /* Test dropidle config behavior - default value (0 = disabled)
  * When dropidle is 0, the feature is disabled.
