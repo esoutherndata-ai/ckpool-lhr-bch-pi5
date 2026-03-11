@@ -403,40 +403,6 @@ static void test_worker_mindiff_fractional(void)
 	}
 }
 
-/* Test sequence of vardiff adjustments */
-static void test_vardiff_adjustment_sequence(void)
-{
-	/* Simulate a miner's difficulty evolving over time
-	 * Start high, hashrate emerges, vardiff adjusts down smoothly
-	 */
-	
-	double current_diff = 10.0;
-	struct {
-		double dsps;
-		double expected_optimal;  /* Absolute optimal difficulty values (not multipliers) */
-	} adjustments[] = {
-		{ 0.5, 1.665 },    /* Very low dsps, diff should drop to ~1.665 */
-		{ 1.5, 4.995 },     /* Medium dsps, diff should go to ~4.995 */
-		{ 10.0, 33.3 },   /* High dsps, diff should go to ~33.3 */
-		{ 5.0, 16.65 },   /* Back down, diff should go to ~16.65 */
-	};
-	
-	int num_tests = sizeof(adjustments) / sizeof(adjustments[0]);
-	for (int i = 0; i < num_tests; i++) {
-		double dsps = adjustments[i].dsps;
-		double expected_new = adjustments[i].expected_optimal;
-		
-		/* Calculate new optimal */
-		double optimal = dsps * 3.33;
-		
-		/* Should be close to expected */
-		double error = fabs(optimal - expected_new) / expected_new;
-		assert_true(error < 0.1);  /* Allow 10% error for rounding */
-		
-		current_diff = optimal;
-	}
-}
-
 /*******************************************************************************
  * SECTION 3: COMPREHENSIVE REAL-WORLD MINER TESTS
  * Tests vardiff behavior across full spectrum of miners (CPU to ASIC)
@@ -1498,8 +1464,7 @@ int main(void)
 	run_test(test_floor_check_change);
 	run_test(test_mindiff_clamping_fractional);
 	run_test(test_worker_mindiff_fractional);
-	run_test(test_vardiff_adjustment_sequence);
-	
+
 	/* Section 3: Comprehensive real-world miner tests */
 	printf("\n[SECTION 3: REAL-WORLD MINER SCENARIOS]\n");
 	printf("Testing full miner spectrum: H/s to EH/s\n");
