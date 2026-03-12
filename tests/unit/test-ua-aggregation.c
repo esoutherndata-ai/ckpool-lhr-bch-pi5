@@ -16,16 +16,76 @@ static int perf_tests_enabled(void)
 static void test_normalize_basic()
 {
     char out[65];
+
+    /* ── existing baseline ── */
     normalize_ua_buf("cgminer/4.5.15", out, sizeof(out));
     assert(strcmp(out, "cgminer") == 0);
 
+    /* Rule 3: cpuminer-multi collapses to cpuminer */
     normalize_ua_buf("cpuminer-multi (linux)", out, sizeof(out));
-    assert(strcmp(out, "cpuminer-multi") == 0);
+    assert(strcmp(out, "cpuminer") == 0);
 
-    /* With case and space preservation: " BM1387 Miner " -> "BM1387 Miner"
-     * (leading/trailing spaces stripped, but internal space preserved, case preserved) */
+    /* plain name with spaces is preserved (leading/trailing ws stripped) */
     normalize_ua_buf(" BM1387 Miner ", out, sizeof(out));
     assert(strcmp(out, "BM1387 Miner") == 0);
+
+    /* ── Rule 2: BM chip-model suffix strip ── */
+    /* space-separated BM suffix, no slash */
+    normalize_ua_buf("LuckyMiner BM1366", out, sizeof(out));
+    assert(strcmp(out, "LuckyMiner") == 0);
+
+    /* slash-separated already handled by version-separator stop */
+    normalize_ua_buf("LuckyMiner/BM1366/1.2.0", out, sizeof(out));
+    assert(strcmp(out, "LuckyMiner") == 0);
+
+    /* BM suffix on NerdQAxe comes via slash — name preserved intact */
+    normalize_ua_buf("NerdQAxe++/BM1370/v1.0.36", out, sizeof(out));
+    assert(strcmp(out, "NerdQAxe++") == 0);
+
+    /* bitaxe variant */
+    normalize_ua_buf("bitaxe/BM1370/v2.13.0", out, sizeof(out));
+    assert(strcmp(out, "bitaxe") == 0);
+
+    /* ── Rule 3: cpuminer family ── */
+    normalize_ua_buf("cpuminer-multi/1.3.7", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
+
+    normalize_ua_buf("cpuminer-opt-v2.5.0", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
+
+    normalize_ua_buf("cpuminer_gc3355/3.0", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
+
+    /* bare cpuminer/version untouched by Rule 3 (no '-'/'_' follows) */
+    normalize_ua_buf("cpuminer/2.5.1", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
+
+    /* ── Rule 4: dash-version suffix strip ── */
+    normalize_ua_buf("xminer-1.2.7", out, sizeof(out));
+    assert(strcmp(out, "xminer") == 0);
+
+    /* ── Preserved names (no rule should fire) ── */
+    normalize_ua_buf("Nerd Miner", out, sizeof(out));
+    assert(strcmp(out, "Nerd Miner") == 0);
+
+    normalize_ua_buf("ESP32 TacoMiner", out, sizeof(out));
+    assert(strcmp(out, "ESP32 TacoMiner") == 0);
+
+    normalize_ua_buf("stratum-ping/1.0.0", out, sizeof(out));
+    assert(strcmp(out, "stratum-ping") == 0);
+
+    normalize_ua_buf("esp32s3-toy/1.0", out, sizeof(out));
+    assert(strcmp(out, "esp32s3-toy") == 0);
+
+    /* Antminer with date-string version */
+    normalize_ua_buf("Antminer S19k Pro/Fri Oct 10 11:13:07 CST 2025", out, sizeof(out));
+    assert(strcmp(out, "Antminer S19k Pro") == 0);
+
+    normalize_ua_buf("GreenBit", out, sizeof(out));
+    assert(strcmp(out, "GreenBit") == 0);
+
+    normalize_ua_buf("NMMiner", out, sizeof(out));
+    assert(strcmp(out, "NMMiner") == 0);
 }
 
 static void test_normalize_truncate()

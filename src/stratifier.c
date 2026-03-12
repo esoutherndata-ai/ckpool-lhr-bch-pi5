@@ -569,7 +569,7 @@ static void generate_coinbase(ckpool_t *ckp, workbase_t *wb)
 		}
 		free(cb);
 		ckp->coinbase_valid = true;
-		LOGWARNING("Mining solo to any incoming valid BTC address username");
+		LOGWARNING("Mining solo to any incoming valid Bitcoin Cash address username");
 		if (ckp->donation)
 			LOGWARNING("%.1f percent donation to %s", ckp->donation, ckp->donaddress);
 	}
@@ -8992,17 +8992,17 @@ void *stratifier(void *arg)
 		if (generator_checkaddr(ckp, ckp->donaddress, &ckp->donscript, &ckp->donsegwit)) {
 			ckp->donvalid = true;
 			sdata->dontxnlen = address_to_txn(sdata->dontxnbin, ckp->donaddress, ckp->donscript, ckp->donsegwit);
-			LOGNOTICE("BTC donation address valid %s", ckp->donaddress);
+			LOGNOTICE("BCH donation address valid %s", ckp->donaddress);
 		} else if (generator_checkaddr(ckp, ckp->tndonaddress, &ckp->donscript, &ckp->donsegwit)) {
 			ckp->donaddress = ckp->tndonaddress;
 			ckp->donvalid = true;
 			sdata->dontxnlen = address_to_txn(sdata->dontxnbin, ckp->donaddress, ckp->donscript, ckp->donsegwit);
-			LOGNOTICE("BTC testnet donation address valid %s", ckp->donaddress);
+			LOGNOTICE("BCH testnet donation address valid %s", ckp->donaddress);
 		} else if (generator_checkaddr(ckp, ckp->rtdonaddress, &ckp->donscript, &ckp->donsegwit)) {
 			ckp->donaddress = ckp->rtdonaddress;
 			ckp->donvalid = true;
 			sdata->dontxnlen = address_to_txn(sdata->dontxnbin, ckp->donaddress, ckp->donscript, ckp->donsegwit);
-			LOGNOTICE("BTC regtest donation address valid %s", ckp->donaddress);
+			LOGNOTICE("BCH regtest donation address valid %s", ckp->donaddress);
 		} else
 			LOGNOTICE("No valid donation address found");
 	}
