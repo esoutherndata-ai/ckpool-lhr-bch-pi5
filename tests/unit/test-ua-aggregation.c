@@ -34,6 +34,10 @@ static void test_normalize_basic()
     normalize_ua_buf("LuckyMiner BM1366", out, sizeof(out));
     assert(strcmp(out, "LuckyMiner") == 0);
 
+    /* bare "-BM" with no trailing digits must NOT be stripped */
+    normalize_ua_buf("FooMiner-BM", out, sizeof(out));
+    assert(strcmp(out, "FooMiner-BM") == 0);
+
     /* slash-separated already handled by version-separator stop */
     normalize_ua_buf("LuckyMiner/BM1366/1.2.0", out, sizeof(out));
     assert(strcmp(out, "LuckyMiner") == 0);
@@ -59,6 +63,13 @@ static void test_normalize_basic()
     /* bare cpuminer/version untouched by Rule 3 (no '-'/'_' follows) */
     normalize_ua_buf("cpuminer/2.5.1", out, sizeof(out));
     assert(strcmp(out, "cpuminer") == 0);
+
+    /* Rule 2 regression: bare "-BM" or " BM" with no digits must NOT be stripped */
+    normalize_ua_buf("FooMiner-BM", out, sizeof(out));
+    assert(strcmp(out, "FooMiner-BM") == 0);
+
+    normalize_ua_buf("FooMiner BM", out, sizeof(out));
+    assert(strcmp(out, "FooMiner BM") == 0);
 
     /* ── Rule 4: dash-version suffix strip ── */
     normalize_ua_buf("xminer-1.2.7", out, sizeof(out));

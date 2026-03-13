@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
@@ -31,8 +33,8 @@ static void strip_bm_suffix(char *s, int *lenp)
     /* walk back over trailing digits */
     while (j > 0 && isdigit((unsigned char)s[j - 1]))
         j--;
-    /* expect "BM" immediately before the digit run */
-    if (j >= 2 && s[j - 2] == 'B' && s[j - 1] == 'M') {
+    /* expect "BM" immediately before the digit run (j < n ensures at least one digit was consumed) */
+    if (j < n && j >= 2 && s[j - 2] == 'B' && s[j - 1] == 'M') {
         int sep = j - 2; /* index of 'B' */
         if (sep > 0 && (s[sep - 1] == ' ' || s[sep - 1] == '-')) {
             *lenp = sep - 1;
