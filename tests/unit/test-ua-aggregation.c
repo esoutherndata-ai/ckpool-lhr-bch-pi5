@@ -83,15 +83,15 @@ static void test_normalize_basic()
     normalize_ua_buf("cpuminer_gc3355/3.0", out, sizeof(out));
     assert(strcmp(out, "cpuminer") == 0);
 
-    /* bare cpuminer/version untouched by Rule 3 (no '-'/'_' follows) */
+    /* slash terminates the token; result is "cpuminer" */
     normalize_ua_buf("cpuminer/2.5.1", out, sizeof(out));
     assert(strcmp(out, "cpuminer") == 0);
 
-    /* bare "cpuminer" alone (i==8, i>8 guard prevents Rule 3 firing) */
+    /* bare "cpuminer" with no suffix remains unchanged */
     normalize_ua_buf("cpuminer", out, sizeof(out));
     assert(strcmp(out, "cpuminer") == 0);
 
-    /* "cpuminers-variant" must NOT match (prefix is 'cpuminer' but dst[8]=='s') */
+    /* "cpuminers-variant" shares the prefix but is a distinct product; must NOT collapse */
     normalize_ua_buf("cpuminers-variant", out, sizeof(out));
     assert(strcmp(out, "cpuminers-variant") == 0);
 

@@ -569,7 +569,7 @@ static void generate_coinbase(ckpool_t *ckp, workbase_t *wb)
 		}
 		free(cb);
 		ckp->coinbase_valid = true;
-		LOGWARNING("Mining solo to any incoming valid Bitcoin Cash address username");
+		LOGWARNING("Mining solo to any incoming valid BCH address username");
 		if (ckp->donation)
 			LOGWARNING("%.1f percent donation to %s", ckp->donation, ckp->donaddress);
 	}
