@@ -63,7 +63,7 @@ bool validate_address(connsock_t *cs, const char *address, bool *script, bool *s
 		goto out;
 	}
 	if (!json_is_true(valid_val)) {
-		LOGDEBUG("Bitcoin address %s is NOT valid", address);
+		LOGDEBUG("BCH address %s is NOT valid", address);
 		goto out;
 	}
 	ret = true;
@@ -88,7 +88,7 @@ bool validate_address(connsock_t *cs, const char *address, bool *script, bool *s
 	 * For BCH nodes, this field will be absent, so always set to false. */
 	tmp_val = json_object_get(res_val, "iswitness");
 	*segwit = (tmp_val && json_is_true(tmp_val)) ? true : false;
-	LOGDEBUG("Bitcoin address %s IS valid%s", address, *script ? " script" : "");
+	LOGDEBUG("BCH address %s IS valid%s", address, *script ? " script" : "");
 out:
 	if (val)
 		json_decref(val);
