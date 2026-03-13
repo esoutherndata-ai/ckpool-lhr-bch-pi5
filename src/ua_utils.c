@@ -48,6 +48,9 @@ static void strip_dash_version(char *s, int *lenp)
 {
     int n = *lenp;
     int j = n;
+    /* suffix must end with a digit (rejects trailing-dot cases like "foo-1.") */
+    if (n == 0 || !isdigit((unsigned char)s[n - 1]))
+        return;
     /* walk back over digits and dots */
     while (j > 0 && (isdigit((unsigned char)s[j - 1]) || s[j - 1] == '.'))
         j--;

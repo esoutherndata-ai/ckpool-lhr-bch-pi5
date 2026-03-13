@@ -34,9 +34,28 @@ static void test_normalize_basic()
     normalize_ua_buf("LuckyMiner BM1366", out, sizeof(out));
     assert(strcmp(out, "LuckyMiner") == 0);
 
-    /* bare "-BM" with no trailing digits must NOT be stripped */
+    /* dash-separated BM suffix */
+    normalize_ua_buf("LuckyMiner-BM1366", out, sizeof(out));
+    assert(strcmp(out, "LuckyMiner") == 0);
+
+    /* bare "-BM" or " BM" with no trailing digits must NOT be stripped */
     normalize_ua_buf("FooMiner-BM", out, sizeof(out));
     assert(strcmp(out, "FooMiner-BM") == 0);
+
+    normalize_ua_buf("FooMiner BM", out, sizeof(out));
+    assert(strcmp(out, "FooMiner BM") == 0);
+
+    /* BM with no separator (e.g. "SomeMinerBM1366") must NOT be stripped */
+    normalize_ua_buf("SomeMinerBM1366", out, sizeof(out));
+    assert(strcmp(out, "SomeMinerBM1366") == 0);
+
+    /* standalone "BM1366" (no name prefix) must NOT be stripped */
+    normalize_ua_buf("BM1366", out, sizeof(out));
+    assert(strcmp(out, "BM1366") == 0);
+
+    /* lowercase "bm1366" suffix must NOT be stripped (only uppercase BM matches) */
+    normalize_ua_buf("FooMiner-bm1366", out, sizeof(out));
+    assert(strcmp(out, "FooMiner-bm1366") == 0);
 
     /* slash-separated already handled by version-separator stop */
     normalize_ua_buf("LuckyMiner/BM1366/1.2.0", out, sizeof(out));
@@ -49,6 +68,10 @@ static void test_normalize_basic()
     /* bitaxe variant */
     normalize_ua_buf("bitaxe/BM1370/v2.13.0", out, sizeof(out));
     assert(strcmp(out, "bitaxe") == 0);
+
+    /* Rule 2 fires before Rule 3: cpuminer-BM1366 -> cpuminer (R2 strips BM, R3 then sees exact length) */
+    normalize_ua_buf("cpuminer-BM1366", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
 
     /* ── Rule 3: cpuminer family ── */
     normalize_ua_buf("cpuminer-multi/1.3.7", out, sizeof(out));
@@ -64,16 +87,41 @@ static void test_normalize_basic()
     normalize_ua_buf("cpuminer/2.5.1", out, sizeof(out));
     assert(strcmp(out, "cpuminer") == 0);
 
-    /* Rule 2 regression: bare "-BM" or " BM" with no digits must NOT be stripped */
-    normalize_ua_buf("FooMiner-BM", out, sizeof(out));
-    assert(strcmp(out, "FooMiner-BM") == 0);
+    /* bare "cpuminer" alone (i==8, i>8 guard prevents Rule 3 firing) */
+    normalize_ua_buf("cpuminer", out, sizeof(out));
+    assert(strcmp(out, "cpuminer") == 0);
 
-    normalize_ua_buf("FooMiner BM", out, sizeof(out));
-    assert(strcmp(out, "FooMiner BM") == 0);
+    /* "cpuminers-variant" must NOT match (prefix is 'cpuminer' but dst[8]=='s') */
+    normalize_ua_buf("cpuminers-variant", out, sizeof(out));
+    assert(strcmp(out, "cpuminers-variant") == 0);
+
+    /* Rule 3 is case-insensitive match but preserves input casing */
+    normalize_ua_buf("CPUMINER-multi", out, sizeof(out));
+    assert(strcmp(out, "CPUMINER") == 0);
 
     /* ── Rule 4: dash-version suffix strip ── */
     normalize_ua_buf("xminer-1.2.7", out, sizeof(out));
     assert(strcmp(out, "xminer") == 0);
+
+    normalize_ua_buf("FooMiner-2.0", out, sizeof(out));
+    assert(strcmp(out, "FooMiner") == 0);
+
+    /* Rule 4 regression: trailing dot must NOT be stripped */
+    normalize_ua_buf("foo-1.", out, sizeof(out));
+    assert(strcmp(out, "foo-1.") == 0);
+
+    /* Rule 4 regression: dot-led suffix must NOT be stripped */
+    normalize_ua_buf("foo-.1", out, sizeof(out));
+    assert(strcmp(out, "foo-.1") == 0);
+
+    /* Rule 4 regression: bare dash must NOT be stripped */
+    normalize_ua_buf("foo-", out, sizeof(out));
+    assert(strcmp(out, "foo-") == 0);
+
+    /* Rule 4: v-prefixed version (e.g. "FooMiner-v2") must NOT be stripped
+     * because 'v' is not a digit so the suffix-start check fails */
+    normalize_ua_buf("FooMiner-v2", out, sizeof(out));
+    assert(strcmp(out, "FooMiner-v2") == 0);
 
     /* ── Preserved names (no rule should fire) ── */
     normalize_ua_buf("Nerd Miner", out, sizeof(out));
