@@ -68,10 +68,26 @@ void rename_proc(const char *name)
 
 void create_pthread(pthread_t *thread, void *(*start_routine)(void *), void *arg)
 {
-	int ret = pthread_create(thread, NULL, start_routine,  arg);
+	pthread_attr_t attr;
+	int ret;
+
+	ret = pthread_attr_init(&attr);
+	if (unlikely(ret))
+		quit(1, "Failed to pthread_attr_init (%d): %s", ret, strerror(ret));
+	/* 64MB stack: BCH supports 32MB blocks (vs BTC's 1MB), meaning block
+	 * templates can contain 100k+ transactions. alloca() calls in
+	 * wb_merkle_bin_txns and gbt_witness_data scale with txn count and
+	 * overflow the default 8MB stack during mempool spikes or when
+	 * percentblockmaxsize=100. 64MB covers 32MB blocks at 100% capacity
+	 * and a future 2x block limit increase. */
+	ret = pthread_attr_setstacksize(&attr, 64 * 1024 * 1024);
+	if (unlikely(ret))
+		quit(1, "Failed to pthread_attr_setstacksize (%d): %s", ret, strerror(ret));
+	ret = pthread_create(thread, &attr, start_routine, arg);
+	pthread_attr_destroy(&attr);
 
 	if (unlikely(ret))
-		quit(1, "Failed to pthread_create");
+		quit(1, "Failed to pthread_create (%d): %s", ret, strerror(ret));
 }
 
 void join_pthread(pthread_t thread)
