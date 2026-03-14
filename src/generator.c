@@ -34,7 +34,7 @@ struct notify_instance {
 	char *coinbase2;
 	int coinb1len;
 	int merkles;
-	char merklehash[16][68];
+	char merklehash[32][68]; /* BCH: depth up to 19 at 32MB blocks; [32] covers 2^32 txns */
 	char nbit[12];
 	char ntime[12];
 	char bbversion[12];

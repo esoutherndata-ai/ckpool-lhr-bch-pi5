@@ -53,8 +53,8 @@ struct genwork {
 	char witnessdata[80]; //null-terminated ascii
 	bool insert_witness;
 	int merkles;
-	char merklehash[16][68];
-	char merklebin[16][32];
+	char merklehash[32][68]; /* BCH: depth up to 19 at 32MB blocks; [32] covers 2^32 txns */
+	char merklebin[32][32];
 	json_t *merkle_array;
 
 	/* Template variables, lengths are binary lengths! */
