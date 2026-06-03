@@ -74,3 +74,9 @@ sudo systemctl enable ckpool.service
 sudo systemctl start ckpool.service
 
 ##This README explains the problems we ran into and how we fixed them. It's clear and helpful for other users.
+
+##Donations gratefully accepted at:
+##BTC accepted at address: bc1q3ju73murhlathgs9330cjlmzm2qwafns50u8yh
+##BCH accepted at address: qzdua8nafl9l8qvp62u0xpnp9xn8uyq74svmdh6l3g
+
+##Thankyou!
