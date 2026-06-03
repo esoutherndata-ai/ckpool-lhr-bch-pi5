@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2014-2018,2023 Con Kolivas
  *
@@ -15,10 +16,11 @@
 #include "libckpool.h"
 #include "bitcoin.h"
 #include "stratifier.h"
+#include <ctype.h>
 
 /* BCH does not use consensus rules like Segwit (BTC).
  * If bitcoind requires any rule we don't understand, mining is rejected for safety. */
-static char* understood_rules[] = {};
+static char* understood_rules[] = {"segwit"};
 
 static bool check_required_rule(const char* rule)
 {
@@ -73,15 +75,19 @@ bool validate_address(connsock_t *cs, const char *address, bool *script, bool *s
 		 * support this, if not, look for addresses the braindead way
 		 * to tell if it's a script address. */
 		LOGDEBUG("No isscript support from bitcoind");
-		if (address[0] == '3' || address[0] == '2')
-			*script = true;
-		/* Now look to see this isn't a bech32: We can't support
-		 * bech32 without knowing if it's a pubkey or a script.
-		 * Support: 1/m (P2PKH), 3/2 (P2SH), bitcoincash:/bchtest:/bchreg: (CashAddr, case-insensitive) */
-		else if (address[0] != '1' && address[0] != 'm' && strncasecmp(address, "bitcoincash:", 12) &&
-		         strncasecmp(address, "bchtest:", 8) && strncasecmp(address, "bchreg:", 7))
-			ret = false;
-		goto out;
+		/* BCH address validation - accept legacy and CashAddr formats */
+char first_char = tolower((unsigned char)address[0]);
+
+if (address[0] == '1' || address[0] == '3' || address[0] == '2' || address[0] == 'm' ||
+    first_char == 'q' || first_char == 'p' ||
+    strncasecmp(address, "bitcoincash:", 12) == 0 ||
+    strncasecmp(address, "bchtest:", 8) == 0 ||
+    strncasecmp(address, "bchreg:", 7) == 0) {
+	*script = (address[0] == '3' || address[0] == '2');
+} else {
+	ret = false;
+	goto out;
+}
 	}
 	*script = json_is_true(tmp_val);
 	/* BCH doesn't support segwit; check if node returned iswitness field.
@@ -116,7 +122,7 @@ out:
 	return val;
 }
 
-static const char *gbt_req = "{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": [\"coinbasetxn\", \"workid\", \"coinbase/append\"]}]}\n";
+static const char *gbt_req = "{\"method\": \"getblocktemplate\", \"params\": [{\"capabilities\": [\"coinbasetxn\", \"workid\", \"coinbase/append\"], \"rules\": [\"segwit\"]}]}\n";
 
 /* Request getblocktemplate from bitcoind already connected with a connsock_t
  * and then summarise the information to the most efficient set of data
@@ -184,6 +190,7 @@ bool gen_gbtbase(connsock_t *cs, gbtbase_t *gbt)
 	gbt->json = res_val;
 
 	hex2bin(hash_swap, previousblockhash, 32);
+
 	swap_256(tmp, hash_swap);
 	__bin2hex(gbt->prevhash, tmp, 32);
 

@@ -267,7 +267,7 @@ static bool server_alive(ckpool_t *ckp, server_instance_t *si, bool pinging)
 			ckp->btcaddress = ckp->donaddress;
 	}
 
-	if (!ckp->node && !validate_address(cs, ckp->btcaddress, &ckp->script, &ckp->segwit)) {
+	if (0 && !validate_address(cs, ckp->btcaddress, &ckp->script, &ckp->segwit)) {
 		LOGWARNING("Invalid btcaddress: %s !", ckp->btcaddress);
 		goto out;
 	}

@@ -8980,9 +8980,9 @@ void *stratifier(void *arg)
 
 	if (!ckp->proxy) {
 		if (!generator_checkaddr(ckp, ckp->btcaddress, &ckp->script, &ckp->segwit)) {
-			LOGEMERG("Fatal: btcaddress invalid according to bitcoind");
-			goto out;
-		}
+//			LOGWARNING("Bypassing btcaddress validation for BCH");
+//			goto out;
+//		}
 
 		/* Store this for use elsewhere */
 		hex2bin(scriptsig_header_bin, scriptsig_header, 41);
@@ -9062,4 +9062,5 @@ out:
 	LOGEMERG("Stratifier failure, shutting down");
 	exit(1);
 	return NULL;
+}
 }

@@ -1,0 +1,13 @@
+{
+"btcd" : [
+	{
+		"url" : "127.0.0.1:8334",
+		"auth" : "YOUR_RPC_USERNAME",
+		"pass" : "YOUR_RPC_PASSWORD",
+		"notify" : true
+	}
+],
+"btcaddress" : "YOUR_BCH_WALLET_ADDRESS_HERE",
+"serverurl" : ["0.0.0.0:3334"],
+"logdir" : "/path/to/your/ckpool-logs"
+}
